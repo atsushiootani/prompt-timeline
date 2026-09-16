@@ -1,0 +1,18 @@
+# bin/ を無視する設定が手元のグローバル gitignore にあることがあるので打ち消す
+# （このリポジトリでは bin/ が本体）
+!bin/
+!bin/*.py
+
+# 生成物（自分のプロンプト本文が入るので絶対に公開しない）
+out/
+*.html
+!view/template.html
+
+# 自分用の設定（例は config/agents.example.json の方）
+config/agents.json
+*.local.json
+
+# OS / エディタ
+.DS_Store
+__pycache__/
+*.pyc

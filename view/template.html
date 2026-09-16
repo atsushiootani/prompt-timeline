@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>__TITLE__</title>
+<style>__CSS__</style>
+</head>
+<body>
+<div class="pt-wrap">
+  <div class="pt-head">
+    <h1>🕒 プロンプト・タイムライン</h1>
+    <div class="pt-date" id="ptDate"></div>
+  </div>
+  <div class="pt-stats" id="ptStats"></div>
+  <div id="ptTimeline"></div>
+  <div class="pt-foot" id="ptFoot"></div>
+</div>
+<script>window.PROMPT_TIMELINE_DATA = __DATA__;</script>
+<script>__JS__</script>
+<script>
+(function () {
+  var data = window.PROMPT_TIMELINE_DATA || {};
+  var s = data.summary || {};
+  document.getElementById("ptDate").textContent = data.date || "";
+
+  function stat(host, value, label) {
+    var d = document.createElement("div"); d.className = "pt-stat";
+    var b = document.createElement("b"); b.textContent = value;
+    var t = document.createElement("span"); t.textContent = label;
+    d.appendChild(b); d.appendChild(t); host.appendChild(d);
+  }
+  var stats = document.getElementById("ptStats");
+  var sessions = Object.keys(s.by_session || {}).length;
+  stat(stats, s.human_prompts != null ? s.human_prompts : 0, "打ったプロンプト");
+  stat(stats, s.slash_commands != null ? s.slash_commands : 0, "スラッシュコマンド");
+  stat(stats, sessions, "セッション");
+  var rows = data.human_prompts || [];
+  if (rows.length) {
+    stat(stats, rows[0].time.slice(0, 5) + "–" + rows[rows.length - 1].time.slice(0, 5), "はじめ – おわり");
+    var chars = rows.reduce(function (a, r) { return a + (r.chars || (r.text || "").length); }, 0);
+    stat(stats, Math.round(chars / rows.length), "平均文字数");
+  }
+
+  PromptTimeline.mount(document.getElementById("ptTimeline"), data);
+
+  var foot = document.getElementById("ptFoot");
+  var ex = s.excluded || {};
+  var exText = Object.keys(ex).filter(function (k) { return ex[k]; })
+    .map(function (k) { return k + " " + ex[k]; }).join(" / ");
+  foot.textContent = "点にカーソルを重ねると本文、押すと下に全文。見出しか凡例を押すとそのセッションを隠せる。" +
+    (exText ? "　除外した自動投入: " + exText + "。" : "") +
+    (data.generatedAt ? "　生成 " + data.generatedAt : "");
+})();
+</script>
+</body>
+</html>

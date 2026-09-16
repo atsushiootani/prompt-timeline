@@ -1,0 +1,26 @@
+{
+  "_note": "任意の設定。無くても動く。config/agents.json に置くと collect.py が拾う（gitignore 済み）。",
+
+  "_workspaceAlias": "cwd の末尾ディレクトリ名 → 画面に出す短い名前。列見出しが長くて読みにくいときだけ書く。",
+  "workspaceAlias": {
+    "my-long-project-name": "proj",
+    "another-repository": "other"
+  },
+
+  "_sessionLabel": "セッション名は transcript の agentName / customTitle が最優先。それが無いセッションに自分で名前を付けたいとき用。pattern は transcript の行に当てる正規表現で、最初の丸かっこで拾った文字列を names で引く。拾えなければセッション UUID の頭 8 桁になる。",
+  "sessionLabel": {
+    "pattern": "workers/([0-9])/",
+    "names": {
+      "0": "main",
+      "1": "docs",
+      "2": "review"
+    }
+  },
+
+  "_agents": "エージェント名 → 色。指定しなければ内蔵パレットから順に割り当てる。",
+  "agents": {
+    "main":   { "color": "#22ccee" },
+    "docs":   { "color": "#eeee22" },
+    "review": { "color": "#22ee22" }
+  }
+}
