@@ -1,26 +1,27 @@
-/* prompt-timeline — タイムラインビュー本体
+/* prompt-timeline - the timeline view itself
  *
  * PromptTimeline.mount(el, data, opts)
- *   el   … 描画先の要素
- *   data … bin/collect.py が吐いた JSON（date / summary / human_prompts / slash_commands / agents）
- *   opts … { showSlash: true, title: "…" }
+ *   el   ... element to draw into
+ *   data ... JSON produced by the collector (date / summary / human_prompts / slash_commands / agents)
+ *   opts ... { showSlash: true }
  *
- * 縦 = 時刻、横 = セッション。丸 = 打ったプロンプト、ひし形 = スラッシュコマンド。
- * 素の DOM だけで動く（依存ライブラリなし）。
+ * Time runs down, sessions run across. A circle is a prompt you typed,
+ * a diamond is a slash command. Plain DOM, no dependencies.
  */
 (function (global) {
   "use strict";
 
-  // 色は設定で指定が無いときのフォールバック。彩度・明度をそろえて隣同士が混ざらない並びにしてある。
+  // Used when the config does not name a colour. Even in saturation so neighbours stay distinct.
   var FALLBACK = ["#3b82f6", "#ff6f93", "#10b981", "#a855f7", "#f59e0b",
                   "#06b6d4", "#ef4444", "#14b8a6", "#ec4899", "#0ea5e9",
                   "#84cc16", "#f97316", "#8b5cf6", "#22d3ee", "#e11d48"];
 
-  var GUTTER = 32,    // 時刻ラベルの幅
-      COLW   = 62,    // セッション 1 列の幅
-      HEAD   = 52,    // 列見出しの高さ
-      PAD    = 14,    // プロットの上下余白
-      HOURPX = 62;    // 1 時間あたりの高さ
+  var GUTTER  = 32,   // width of the time labels
+      COLW_MIN = 62,  // narrowest a session column gets
+      COLW_MAX = 150, // widest, so a couple of sessions don't sprawl
+      HEAD    = 52,   // height of the column headers
+      PAD     = 14,   // breathing room at the top and bottom of the plot
+      HOURPX  = 62;   // pixels per hour
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -104,7 +105,7 @@
 
     if (!rows.length) {
       el("div", "pt-empty", host).textContent =
-        (data.date || "この日") + " のプロンプト記録はまだないよ";
+        "No prompts recorded for " + (data.date || "this day") + ".";
       return;
     }
 
@@ -117,6 +118,10 @@
     if (hi - lo < 60) hi = lo + 60;
 
     var plotH = Math.max(240, (hi - lo) / 60 * HOURPX);
+    // Spread the columns across whatever width we were given, within reason.
+    var avail = Math.max(0, (host.clientWidth || 0) - 34);
+    var COLW = Math.max(COLW_MIN, Math.min(COLW_MAX,
+                 cols.length ? Math.floor((avail - GUTTER) / cols.length) : COLW_MIN));
     var width = GUTTER + cols.length * COLW;
     var yOf = function (m) { return HEAD + PAD + (m - lo) / (hi - lo) * (plotH - 2 * PAD); };
 
@@ -147,7 +152,7 @@
       var head = el("div", "pt-colhead", plot);
       head.style.left = x + "px";
       head.style.width = COLW + "px";
-      head.title = c.key + "（" + c.n + " 通" + (c.slash ? " / " + c.slash + " コマンド" : "") + "）";
+      head.title = c.key + " - " + c.n + " prompts" + (c.slash ? ", " + c.slash + " commands" : "");
       el("div", "pt-ws", head).textContent = c.ws || "";
       el("div", "pt-nm", head).textContent = c.name;
       el("div", "pt-bar", head).style.background = c.color;
@@ -168,7 +173,7 @@
 
       d.addEventListener("mouseenter", function () {
         tip.innerHTML = '<div class="pt-tip-head">' + esc(r.time) + " ・ " + esc(r.session || "") +
-          (r.kind === "slash" ? " ・ コマンド" : "") + "</div>" + esc(r.text || "");
+          (r.kind === "slash" ? " - command" : "") + "</div>" + esc(r.text || "");
         tip.classList.add("show");
         var box = d.getBoundingClientRect();
         tip.style.left = "0px"; tip.style.top = "0px";        // いったん置いて実寸を測る
@@ -222,7 +227,7 @@
       var when = el("span", null, head);
       var close = el("button", null, head);
       close.type = "button";
-      close.textContent = "閉じる";
+      close.textContent = "Close";
       close.addEventListener("click", function () {
         box.classList.remove("show");
         dots.forEach(function (o) { o.node.classList.remove("active"); });
@@ -236,8 +241,8 @@
       detailParts.swatch.style.background = c.color;
       detailParts.who.textContent = r.session || "";
       detailParts.when.textContent =
-        r.time + (r.branch ? " ・ " + r.branch : "") + (r.kind === "slash" ? " ・ コマンド" : "");
-      detailParts.body.textContent = r.text || "(本文なし)";
+        r.time + (r.branch ? "  ·  " + r.branch : "") + (r.kind === "slash" ? "  ·  command" : "");
+      detailParts.body.textContent = r.text || "(no body)";
       detailParts.box.classList.add("show");
     }
   }

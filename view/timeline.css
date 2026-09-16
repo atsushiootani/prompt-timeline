@@ -1,5 +1,5 @@
-/* prompt-timeline — タイムラインビューの見た目
-   縦 = 時刻 / 横 = セッション。1 点 = プロンプト 1 通。 */
+/* prompt-timeline - styling for the timeline view.
+   Time runs down, sessions run across. One dot is one prompt. */
 :root{
   --bg:#faf7f4; --card:#fff; --ink:#3a2e26; --sub:#9b8c81; --line:#ece3da;
   --grid:#f0e6dc; --lane:#f4ece4; --shadow:0 2px 10px rgba(120,90,70,.08);
@@ -17,7 +17,7 @@ body{margin:0;background:var(--bg);color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
 .pt-wrap{max-width:1280px;margin:0 auto;padding:22px 18px 60px}
 
-/* ---- ヘッダ ---- */
+/* ---- header ---- */
 .pt-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 16px;margin-bottom:6px}
 .pt-head h1{font-size:20px;margin:0;font-weight:800;letter-spacing:.01em}
 .pt-date{font-size:14px;font-weight:700;color:var(--sub)}
@@ -27,11 +27,11 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-stat b{display:block;font-size:19px;line-height:1.2}
 .pt-stat span{font-size:11px;color:var(--sub)}
 
-/* ---- プロット ---- */
+/* ---- plot ---- */
 .pt-panel{background:var(--card);border:1px solid var(--line);border-radius:16px;
   box-shadow:var(--shadow);padding:14px 12px}
 .pt-scroll{overflow-x:auto;overflow-y:hidden}
-.pt-plot{position:relative}                       /* 幅・高さは JS が入れる */
+.pt-plot{position:relative;margin:0 auto}          /* width/height are set by the JS */
 .pt-gridline{position:absolute;left:0;right:0;border-top:1px solid var(--grid)}
 .pt-gridline .pt-time{position:absolute;left:0;top:-10px;width:28px;text-align:right;
   font-size:9px;line-height:1.02;color:var(--sub)}
@@ -51,7 +51,7 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-dot.hidden{display:none}
 .pt-empty{color:var(--sub);text-align:center;padding:40px 0;font-size:13px}
 
-/* ---- ホバーの吹き出し ---- */
+/* ---- hover tooltip ---- */
 .pt-tip{position:fixed;z-index:90;max-width:380px;max-height:52vh;overflow:auto;
   background:var(--tip-bg);color:var(--tip-ink);padding:9px 12px;border-radius:10px;
   font-size:12px;line-height:1.55;box-shadow:0 8px 24px rgba(60,40,30,.32);
@@ -59,7 +59,7 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-tip.show{opacity:1}
 .pt-tip .pt-tip-head{font-weight:800;font-size:11px;opacity:.75;margin-bottom:4px}
 
-/* ---- 選んだ 1 通の詳細 ---- */
+/* ---- detail panel for the selected prompt ---- */
 .pt-detail{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:16px;
   box-shadow:var(--shadow);padding:14px 16px;display:none}
 .pt-detail.show{display:block}
@@ -71,7 +71,7 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-detail pre{margin:0;white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.7;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;max-height:44vh;overflow:auto}
 
-/* ---- 凡例 ---- */
+/* ---- legend ---- */
 .pt-legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
 .pt-legend button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);
   background:var(--card);color:var(--ink);border-radius:999px;padding:4px 11px;font-size:11px;

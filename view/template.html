@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -9,7 +9,7 @@
 <body>
 <div class="pt-wrap">
   <div class="pt-head">
-    <h1>🕒 プロンプト・タイムライン</h1>
+    <h1>Prompt Timeline</h1>
     <div class="pt-date" id="ptDate"></div>
   </div>
   <div class="pt-stats" id="ptStats"></div>
@@ -21,36 +21,51 @@
 <script>
 (function () {
   var data = window.PROMPT_TIMELINE_DATA || {};
-  var s = data.summary || {};
+  var summary = data.summary || {};
   document.getElementById("ptDate").textContent = data.date || "";
 
   function stat(host, value, label) {
-    var d = document.createElement("div"); d.className = "pt-stat";
-    var b = document.createElement("b"); b.textContent = value;
-    var t = document.createElement("span"); t.textContent = label;
-    d.appendChild(b); d.appendChild(t); host.appendChild(d);
+    var box = document.createElement("div");
+    box.className = "pt-stat";
+    var big = document.createElement("b");
+    big.textContent = value;
+    var small = document.createElement("span");
+    small.textContent = label;
+    box.appendChild(big);
+    box.appendChild(small);
+    host.appendChild(box);
   }
+
   var stats = document.getElementById("ptStats");
-  var sessions = Object.keys(s.by_session || {}).length;
-  stat(stats, s.human_prompts != null ? s.human_prompts : 0, "打ったプロンプト");
-  stat(stats, s.slash_commands != null ? s.slash_commands : 0, "スラッシュコマンド");
-  stat(stats, sessions, "セッション");
   var rows = data.human_prompts || [];
+  stat(stats, summary.human_prompts != null ? summary.human_prompts : 0, "prompts typed");
+  stat(stats, summary.slash_commands != null ? summary.slash_commands : 0, "slash commands");
+  stat(stats, Object.keys(summary.by_session || {}).length, "sessions");
   if (rows.length) {
-    stat(stats, rows[0].time.slice(0, 5) + "–" + rows[rows.length - 1].time.slice(0, 5), "はじめ – おわり");
-    var chars = rows.reduce(function (a, r) { return a + (r.chars || (r.text || "").length); }, 0);
-    stat(stats, Math.round(chars / rows.length), "平均文字数");
+    stat(stats, rows[0].time.slice(0, 5) + " - " + rows[rows.length - 1].time.slice(0, 5), "first to last");
+    var chars = rows.reduce(function (sum, r) { return sum + (r.chars || (r.text || "").length); }, 0);
+    stat(stats, Math.round(chars / rows.length), "avg characters");
   }
 
-  PromptTimeline.mount(document.getElementById("ptTimeline"), data);
+  var host = document.getElementById("ptTimeline");
+  PromptTimeline.mount(host, data);
 
-  var foot = document.getElementById("ptFoot");
-  var ex = s.excluded || {};
-  var exText = Object.keys(ex).filter(function (k) { return ex[k]; })
-    .map(function (k) { return k + " " + ex[k]; }).join(" / ");
-  foot.textContent = "点にカーソルを重ねると本文、押すと下に全文。見出しか凡例を押すとそのセッションを隠せる。" +
-    (exText ? "　除外した自動投入: " + exText + "。" : "") +
-    (data.generatedAt ? "　生成 " + data.generatedAt : "");
+  // Column width is derived from the space available, so redraw when that changes.
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { PromptTimeline.mount(host, data); }, 150);
+  });
+
+  var excluded = summary.excluded || {};
+  var excludedText = Object.keys(excluded)
+    .filter(function (key) { return excluded[key]; })
+    .map(function (key) { return key + " " + excluded[key]; })
+    .join(", ");
+  document.getElementById("ptFoot").textContent =
+    "Hover a dot for the prompt, click it for the full text. Click a header or a legend chip to hide that session." +
+    (excludedText ? "  Machine-injected turns excluded: " + excludedText + "." : "") +
+    (data.generatedAt ? "  Generated " + data.generatedAt : "");
 })();
 </script>
 </body>

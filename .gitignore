@@ -1,18 +1,16 @@
-# bin/ を無視する設定が手元のグローバル gitignore にあることがあるので打ち消す
-# （このリポジトリでは bin/ が本体）
+# Some global gitignore files exclude bin/ - here bin/ is the tool itself.
 !bin/
-!bin/*.py
+!bin/*.mjs
 
-# 生成物（自分のプロンプト本文が入るので絶対に公開しない）
+# Generated output: contains your prompts verbatim, so never publish it.
 out/
 *.html
 !view/template.html
 
-# 自分用の設定（例は config/agents.example.json の方）
+# Your own config (the committed example is config/agents.example.json)
 config/agents.json
 *.local.json
 
-# OS / エディタ
+node_modules/
+
 .DS_Store
-__pycache__/
-*.pyc

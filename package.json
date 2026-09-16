@@ -1,0 +1,46 @@
+{
+  "name": "prompt-timeline",
+  "version": "1.0.0",
+  "description": "Turn your local Claude Code transcripts into a timeline of the prompts you typed: time down, session across, one self-contained HTML file.",
+  "type": "module",
+  "license": "MIT",
+  "author": "atsushiootani",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atsushiootani/prompt-timeline.git"
+  },
+  "keywords": [
+    "claude-code",
+    "timeline",
+    "visualization",
+    "transcripts",
+    "productivity"
+  ],
+  "bin": {
+    "prompt-timeline": "bin/prompt-timeline.mjs"
+  },
+  "main": "src/collect.mjs",
+  "exports": {
+    ".": "./src/collect.mjs",
+    "./render": "./src/render.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "view",
+    "config/agents.example.json",
+    "README.md",
+    "README.ja.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node bin/prompt-timeline.mjs build",
+    "demo": "node bin/prompt-timeline.mjs render --in sample/sample-day.json --out out/demo.html",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

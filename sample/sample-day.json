@@ -1,0 +1,462 @@
+{
+  "date": "2026-09-16",
+  "generatedAt": "2026-09-16T19:30:00.000Z",
+  "note": "Sample data. Fabricated for the demo and the screenshot - no real prompts.",
+  "summary": {
+    "human_prompts": 42,
+    "slash_commands": 6,
+    "by_session": {
+      "webapp.main": 18,
+      "webapp.tests": 10,
+      "api-server.review": 6,
+      "webapp.docs": 5,
+      "api-server.9f2c41b7": 3
+    },
+    "excluded": {
+      "teammate": 4,
+      "task_notif": 11,
+      "bash_io": 2,
+      "continuation": 1,
+      "interrupt": 3,
+      "sdk_filtered": 0
+    }
+  },
+  "agents": {
+    "main": {
+      "color": "#3b82f6"
+    },
+    "tests": {
+      "color": "#10b981"
+    },
+    "docs": {
+      "color": "#f59e0b"
+    },
+    "review": {
+      "color": "#a855f7"
+    }
+  },
+  "human_prompts": [
+    {
+      "time": "09:12:46",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Let's start the checkout flow. Read src/checkout/ and tell me how the cart state is held today before you change anything.",
+      "chars": 122,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "09:42:25",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Cart total is wrong when a discount code is applied twice. Reproduce it in a test first, then fix it.",
+      "chars": 101,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "10:13:19",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "text": "Set up a test harness for the checkout module. Table-driven, no mocking framework.",
+      "chars": 82,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "10:14:05",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Why is applyDiscount mutating the cart in place? Walk me through the call chain.",
+      "chars": 80,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "10:42:08",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "text": "Add cases for the double-discount bug we just fixed.",
+      "chars": 52,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "10:50:01",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Extract the tax calculation into its own module. Keep the public signature stable.",
+      "chars": 82,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "11:14:52",
+      "session": "api-server.review",
+      "workspace": "api-server",
+      "agent": "review",
+      "text": "Review the open PR on api-server for correctness only. Skip style.",
+      "chars": 66,
+      "branch": "main"
+    },
+    {
+      "time": "11:17:03",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "That broke the currency rounding. Show me the diff again.",
+      "chars": 57,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "11:27:14",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "text": "Cover the zero-quantity and negative-quantity paths too.",
+      "chars": 56,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "11:48:50",
+      "session": "api-server.review",
+      "workspace": "api-server",
+      "agent": "review",
+      "text": "The rate limiter looks like it resets the window on every request. Verify that claim before I comment.",
+      "chars": 102,
+      "branch": "main"
+    },
+    {
+      "time": "12:03:52",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Use integer cents everywhere instead of floats. Update the callers too.",
+      "chars": 71,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "12:07:56",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "text": "This test passes even when I break the implementation. Make it discriminating.",
+      "chars": 78,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "12:25:41",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Now wire the new tax module into the checkout summary component.",
+      "chars": 64,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "12:45:14",
+      "session": "api-server.review",
+      "workspace": "api-server",
+      "agent": "review",
+      "text": "Confirmed - write it up as a review comment with a concrete failure scenario.",
+      "chars": 77,
+      "branch": "main"
+    },
+    {
+      "time": "13:10:09",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "text": "Add a property test for the rounding: total should always equal the sum of line items.",
+      "chars": 86,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "13:16:52",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "The summary re-renders on every keystroke. Find out why.",
+      "chars": 56,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "13:20:57",
+      "session": "webapp.docs",
+      "workspace": "webapp",
+      "agent": "docs",
+      "text": "Write the README section for the checkout module. Explain the cents convention up front.",
+      "chars": 88,
+      "branch": "main"
+    },
+    {
+      "time": "13:31:28",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Memoize it, but only if the inputs really are stable - check first.",
+      "chars": 67,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "13:47:05",
+      "session": "api-server.review",
+      "workspace": "api-server",
+      "agent": "review",
+      "text": "Is there a test that would have caught this?",
+      "chars": 44,
+      "branch": "main"
+    },
+    {
+      "time": "13:47:56",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "text": "It found a counterexample - show me the failing input.",
+      "chars": 54,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "14:08:18",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Run the whole suite and show me only the failures.",
+      "chars": 50,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "14:17:38",
+      "session": "webapp.docs",
+      "workspace": "webapp",
+      "agent": "docs",
+      "text": "Too long. Cut the background and keep the how-to.",
+      "chars": 49,
+      "branch": "main"
+    },
+    {
+      "time": "14:32:14",
+      "session": "api-server.review",
+      "workspace": "api-server",
+      "agent": "review",
+      "text": "Suggest the smallest fix that keeps the existing interface.",
+      "chars": 59,
+      "branch": "main"
+    },
+    {
+      "time": "14:35:07",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "text": "Fix the implementation, not the test.",
+      "chars": 37,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "14:40:45",
+      "session": "api-server.9f2c41b7",
+      "workspace": "api-server",
+      "agent": "9f2c41b7",
+      "text": "Quick question - what's the default timeout on the http client in this repo?",
+      "chars": 76,
+      "branch": "fix/rate-limit"
+    },
+    {
+      "time": "14:47:43",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Two of those failures look like fixture drift, not real breakage. Confirm which.",
+      "chars": 80,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "14:53:23",
+      "session": "api-server.9f2c41b7",
+      "workspace": "api-server",
+      "agent": "9f2c41b7",
+      "text": "Where is that configured?",
+      "chars": 25,
+      "branch": "fix/rate-limit"
+    },
+    {
+      "time": "15:00:03",
+      "session": "api-server.review",
+      "workspace": "api-server",
+      "agent": "review",
+      "text": "Post the comment.",
+      "chars": 17,
+      "branch": "main"
+    },
+    {
+      "time": "15:03:40",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "text": "Measure coverage on src/checkout only.",
+      "chars": 38,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "15:05:41",
+      "session": "api-server.9f2c41b7",
+      "workspace": "api-server",
+      "agent": "9f2c41b7",
+      "text": "Thanks, that's all I needed.",
+      "chars": 28,
+      "branch": "fix/rate-limit"
+    },
+    {
+      "time": "15:31:35",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Update the fixtures, leave the assertions alone.",
+      "chars": 48,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "15:42:04",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "text": "Ignore the generated files in the coverage config.",
+      "chars": 50,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "15:50:17",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Commit this with a message that explains the cents change, not just 'fix tax'.",
+      "chars": 78,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "15:54:47",
+      "session": "webapp.docs",
+      "workspace": "webapp",
+      "agent": "docs",
+      "text": "Add a short table of the error codes the module can return.",
+      "chars": 59,
+      "branch": "main"
+    },
+    {
+      "time": "16:22:16",
+      "session": "webapp.docs",
+      "workspace": "webapp",
+      "agent": "docs",
+      "text": "Link to the ADR about integer money instead of restating it.",
+      "chars": 60,
+      "branch": "main"
+    },
+    {
+      "time": "16:22:40",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "What's still left before this branch is reviewable?",
+      "chars": 51,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "16:24:51",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "text": "Run it once more and give me the final number.",
+      "chars": 46,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "16:47:58",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Add an error state for when the discount service times out.",
+      "chars": 59,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "17:29:46",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Retry twice with backoff, then fall back to no discount and log it.",
+      "chars": 67,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "17:40:00",
+      "session": "webapp.docs",
+      "workspace": "webapp",
+      "agent": "docs",
+      "text": "Proofread the whole file for consistency in terminology.",
+      "chars": 56,
+      "branch": "main"
+    },
+    {
+      "time": "18:13:24",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Don't swallow the error - surface it to the caller as well.",
+      "chars": 59,
+      "branch": "feat/checkout-flow"
+    },
+    {
+      "time": "18:40:27",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Good. Now write the changelog entry.",
+      "chars": 36,
+      "branch": "feat/checkout-flow"
+    }
+  ],
+  "slash_commands": [
+    {
+      "time": "10:33:45",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "command": "/run"
+    },
+    {
+      "time": "11:55:34",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "command": "/test"
+    },
+    {
+      "time": "13:15:50",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "command": "/code-review"
+    },
+    {
+      "time": "14:02:11",
+      "session": "api-server.review",
+      "workspace": "api-server",
+      "agent": "review",
+      "command": "/pr.create"
+    },
+    {
+      "time": "15:54:44",
+      "session": "webapp.docs",
+      "workspace": "webapp",
+      "agent": "docs",
+      "command": "/doc.format"
+    },
+    {
+      "time": "17:18:22",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "command": "/simplify"
+    }
+  ]
+}

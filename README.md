@@ -1,112 +1,148 @@
 # prompt-timeline
 
-その日に自分が Claude Code へ打ったプロンプトを、**縦 = 時刻 / 横 = セッション**の
-タイムラインにして 1 枚の HTML に焼くツール。
+See a day of your own Claude Code work as a timeline: **time runs down, sessions run across.**
+One dot is one prompt you typed. Hover it to read the prompt, click it for the full text.
 
-丸 1 個がプロンプト 1 通、ひし形がスラッシュコマンド。点に触れると本文が出る。
-「今日どこに時間を使ったか」「どのセッションを引きずり回したか」が一目で分かる。
+[日本語版 README](README.ja.md)
 
-```
-       main      docs   review  …        ← セッション（横）
- 09 ─────●──────────────●──────
- 10 ─────●───●──────────────────          ← 時刻（縦）
- 11 ──────────●──────●───◆──────          ◆ = スラッシュコマンド
-```
+![The timeline, with a prompt shown on hover](docs/screenshot.png)
 
-## 何を読むのか
+Clicking a dot opens the whole prompt underneath, with the branch it was typed on:
 
-`~/.claude/projects/*/*.jsonl` — Claude Code が**自分のマシンに**残している会話ログだけ。
-ネットワークへは出ないし、どこにも送らない。出来上がる HTML も外部を読みに行かない。
+![Clicking a dot opens the full prompt](docs/screenshot-detail.png)
 
-## 使い方
+> Both screenshots are the real tool rendering [`sample/sample-day.json`](sample/sample-day.json),
+> which is fabricated data — nobody's actual prompts.
 
-Python 3 だけあればいい（標準ライブラリのみ・依存パッケージなし）。
+## What it reads
+
+Only `~/.claude/projects/<project>/<session>.jsonl` — the transcripts Claude Code already keeps
+on your own machine. **No network call is made**, nothing is uploaded, and the HTML it produces
+does not fetch anything at view time either.
+
+## Quick start
+
+Node 18 or newer. No dependencies to install.
 
 ```bash
 git clone https://github.com/atsushiootani/prompt-timeline.git
 cd prompt-timeline
 
-# 今日の分を集めて
-python3 bin/collect.py --out out/today.json
-
-# HTML に焼いて
-python3 bin/render.py --in out/today.json --out out/today.html
-
-# 開く
-open out/today.html          # Linux は xdg-open
+node bin/prompt-timeline.mjs build          # today
+open out/2026-09-16.html                    # xdg-open on Linux
 ```
 
-日付を指定するなら `--date 2026-09-16`。
+`build` collects and renders in one step, and prints where it put both files:
 
-### Claude Code のスキルとして使う
+```
+saved: out/2026-09-16.json
+saved: out/2026-09-16.html
+open:  file:///…/out/2026-09-16.html
+human=96 slash=1 sessions=16
+```
 
-`.claude/skills/prompt-timeline.build/` を同梱してある。このリポジトリを開いた
-Claude Code に **「今日のプロンプトのタイムラインを作って」** と頼めば、
-日付の解釈から生成・表示まで通してやってくれる。
+Want a different day, or somewhere else to put it:
 
-ほかのリポジトリからも呼びたいなら、スキルのディレクトリを `~/.claude/skills/` に置く
-（その場合は SKILL.md 中のコマンドを、このリポジトリの絶対パスに直す）。
+```bash
+node bin/prompt-timeline.mjs build --date 2026-09-15 --out-dir ~/timelines
+```
 
-## 何を「人が打ったプロンプト」と見なすか
+Try it without touching your own data:
 
-`type == "user"` のレコードから、**機械が差し込んだもの**を落とした残り。
+```bash
+npm run demo && open out/demo.html
+```
 
-落とすもの: ツールの実行結果 / `isMeta` / `<system-reminder>` だけの行 /
-`<local-command-stdout>` / エージェント間の連携メッセージ / タスク通知 /
-bash の入出力 / 会話の継続サマリ / 中断通知 / サブエージェントの発話。
+## Use it from Claude Code
 
-スラッシュコマンドは分けて数える。同じ会話が複数ファイルに写っていることがあるので
-`(時刻, 本文の先頭 80 字)` で重複を除く。
+A skill ships in [`.claude/skills/prompt-timeline.build/`](.claude/skills/prompt-timeline.build/SKILL.md).
+With this repository open, just ask:
 
-## セッションの名前と色
+> build a timeline of the prompts I typed today
 
-列の見出しは `<ワークスペース>.<セッション名>`。名前は取れたものから順に使う。
+It works out the date, runs the build, and tells you the counts and the path.
+To use it from any repository, copy that skill directory into `~/.claude/skills/`
+and point the commands inside it at wherever you cloned this.
 
-1. transcript の `agentName` / `customTitle`（Claude Code が持っている名前）
-2. `config/agents.json` の `sessionLabel` ルール（正規表現で拾って対応づける）
-3. セッション UUID の先頭 8 桁
+## Commands
 
-ワークスペースは transcript の `cwd` の末尾ディレクトリ名。
-長くて読みにくければ `workspaceAlias` で短くできる。
+```
+prompt-timeline build   [options]              collect + render (what you usually want)
+prompt-timeline collect [options] --out FILE   transcripts -> JSON
+prompt-timeline render  --in FILE [--out FILE] JSON -> a single HTML file
+```
 
-設定は任意。要るときだけ `config/agents.example.json` を `config/agents.json` に写して編集する
-（`agents.json` は gitignore してある）。
+| Option | |
+|---|---|
+| `--date YYYY-MM-DD` | the day to look at (default: today) |
+| `--out FILE` / `--out-dir DIR` | where to write (default: `out/`) |
+| `--no-text` | drop the prompt bodies (session and branch names still remain) |
+| `--drop-sdk` | also drop SDK / system-injected turns |
+| `--projects-dir DIR` | where transcripts live (default: `~/.claude/projects`) |
+| `--tz HOURS` | display against a fixed UTC offset instead of this machine's |
+| `--title TEXT` | page title |
+| `--config FILE` | session names and colours (default: `config/agents.json` if present) |
 
-## オプション
+## What counts as "a prompt you typed"
+
+`type === "user"` records, minus everything the machine injected. Dropped: tool results,
+`isMeta` turns, lines that are only a `<system-reminder>`, `<local-command-stdout>`,
+agent-to-agent messages, task notifications, bash I/O, continuation summaries, interrupts,
+and sub-agent turns. Slash commands are kept but counted separately (the diamonds).
+
+The same conversation can appear in more than one transcript after a resume, so records are
+de-duplicated on `(timestamp, first 80 characters)`. Typing the exact same thing in the same
+second twice will therefore collapse into one dot.
+
+**A day is cut on local time.** A record at 23:30 UTC belongs to the next day if you are at
++09:00, and the timeline files it there.
+
+## How sessions get their names
+
+Columns are labelled `<workspace>.<session>`. The name falls back in this order, so it works
+on any machine without configuration:
+
+1. `agentName` / `customTitle` recorded in the transcript by Claude Code
+2. a `sessionLabel` rule from your config file
+3. the first 8 characters of the session UUID
+
+The workspace is the last directory of the transcript's `cwd`. If that reads long in a column
+header, shorten it with `workspaceAlias`.
+
+Configuration is optional — copy [`config/agents.example.json`](config/agents.example.json)
+to `config/agents.json` only if you want your own names or colours. That file is gitignored.
+
+## Using the view on its own
+
+`view/timeline.js` and `view/timeline.css` have no dependencies and no build step. Drop them
+into your own dashboard and call:
+
+```js
+PromptTimeline.mount(document.getElementById("timeline"), data);
+```
+
+`data` is exactly what the collector writes. Columns size themselves to the width they are
+given, and the view follows `prefers-color-scheme` for dark mode.
+
+## Layout
 
 | | |
 |---|---|
-| `collect.py --date YYYY-MM-DD` | 対象日（既定: 今日） |
-| `collect.py --no-text` | プロンプト**本文**を落とす（時刻・セッション名・ブランチ名は残る） |
-| `collect.py --drop-sdk` | SDK 経由・system 投入の分も落とす |
-| `collect.py --projects-dir PATH` | transcript の置き場（既定: `~/.claude/projects`） |
-| `collect.py --tz 9` | 表示タイムゾーンの UTC オフセット（既定: このマシンの設定） |
-| `render.py --title "…"` | ページタイトル |
+| `bin/prompt-timeline.mjs` | the CLI |
+| `src/collect.mjs` | transcripts -> JSON |
+| `src/render.mjs` | JSON -> one self-contained HTML file |
+| `view/` | the timeline component (`timeline.js`, `timeline.css`, `template.html`) |
+| `sample/sample-day.json` | fabricated data for the demo and the screenshots |
+| `test/` | run with `npm test` |
+| `.claude/skills/prompt-timeline.build/` | the Claude Code skill |
 
-## ファイル
+## Worth knowing
 
-| | |
-|---|---|
-| `bin/collect.py` | transcript → プロンプト記録 JSON |
-| `bin/render.py` | JSON → 単体 HTML（CSS・JS・データを全部埋め込む） |
-| `view/timeline.js` | タイムライン本体（`PromptTimeline.mount(el, data)`・依存なし） |
-| `view/timeline.css` | 見た目。ダークモード対応 |
-| `view/template.html` | 焼き込み先のページ |
-| `config/agents.example.json` | 設定の見本 |
-| `.claude/skills/prompt-timeline.build/` | Claude Code スキル |
+- **The generated HTML contains your prompts verbatim.** Check it before handing it to anyone,
+  or rebuild with `--no-text`. `out/` and `*.html` are gitignored.
+- `--no-text` drops only the bodies. Session names, workspace names and branch names stay —
+  hide those with `workspaceAlias`, or strip them from the JSON yourself.
 
-`view/` の 3 つは単体でも使える。自分のダッシュボードに埋めるなら、
-`timeline.js` と `timeline.css` を読み込んで `PromptTimeline.mount(el, data)` を呼べばいい。
-`data` は `collect.py` が出す JSON そのまま。
-
-## 気をつけること
-
-- **出来た HTML には打った本文がそのまま入る。** 人に渡すときは中身を確認するか
-  `--no-text` で焼き直す。`out/` と `*.html` は gitignore 済み。
-- `--no-text` が落とすのは**本文だけ**。セッション名・ワークスペース名・ブランチ名は残るので、
-  それ自体を見せたくないなら `workspaceAlias` で伏せるか、出力 JSON から手で削る。
-- 日付はローカル時刻で切る。日をまたいだ分は翌日側に入る。
-
-## ライセンス
+## License
 
 MIT
