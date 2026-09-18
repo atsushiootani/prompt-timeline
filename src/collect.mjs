@@ -21,6 +21,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import path from "node:path";
 import os from "node:os";
+import { priceTurn } from "./pricing.mjs";
 
 export const DEFAULT_PROJECTS_DIR = path.join(os.homedir(), ".claude", "projects");
 
@@ -153,7 +154,7 @@ function busySpans(promptAt, records, capMs) {
 }
 
 /** Read one transcript, returning the day's records plus whatever names it carries. */
-async function scanFile(file, day, prefixes, tz, labelPattern, capMs) {
+async function scanFile(file, day, prefixes, tz, labelPattern, capMs, unpriced) {
   const rows = [];
   const activity = [];
   const meta = { cwd: null, agentName: null, sessionId: null, ruleHits: new Map(), file };
@@ -197,13 +198,21 @@ async function scanFile(file, day, prefixes, tz, labelPattern, capMs) {
       // Everything the agent did is activity: its own turns, and the tool results coming
       // back to it. Only a main-thread `end_turn` hands control back — a sub-agent's does not.
       if (obj.type === "assistant") {
-        activity.push({ at, handsBack: obj.message?.stop_reason === "end_turn" && !obj.isSidechain });
+        const model = obj.message?.model;
+        const { cost, tokens } = priceTurn(model, obj.message?.usage);
+        if (cost === null && model) unpriced.add(model);
+        activity.push({
+          at,
+          handsBack: obj.message?.stop_reason === "end_turn" && !obj.isSidechain,
+          cost: cost ?? 0,
+          tokens,
+        });
         continue;
       }
 
       const text = userText(obj);
       if (text === null) {
-        if (obj.type === "user") activity.push({ at, handsBack: false });
+        if (obj.type === "user") activity.push({ at, handsBack: false, cost: 0, tokens: 0 });
         continue;
       }
       rows.push({
@@ -228,7 +237,11 @@ async function scanFile(file, day, prefixes, tz, labelPattern, capMs) {
     while (cursor < activity.length && activity[cursor].at <= rows[i].at) cursor += 1;
     const start = cursor;
     while (cursor < activity.length && activity[cursor].at < until) cursor += 1;
-    rows[i].spans = busySpans(rows[i].at, activity.slice(start, cursor), capMs);
+    const owned = activity.slice(start, cursor);
+    rows[i].spans = busySpans(rows[i].at, owned, capMs);
+    // Sub-agent turns are in here too: work you set off is work you paid for.
+    rows[i].cost = owned.reduce((total, rec) => total + rec.cost, 0);
+    rows[i].tokens = owned.reduce((total, rec) => total + rec.tokens, 0);
   }
 
   return { rows, meta };
@@ -282,9 +295,10 @@ export async function collect(options = {}) {
   const bump = (key) => counts.set(key, (counts.get(key) ?? 0) + 1);
   const capMs = Math.max(0, busyGapCapMinutes) * 60 * 1000;
   const clock = (ms) => localParts(new Date(ms).toISOString(), tz).time;
+  const unpriced = new Set();
 
   for (const file of files) {
-    const { rows, meta } = await scanFile(file, day, prefixes, tz, labelPattern, capMs);
+    const { rows, meta } = await scanFile(file, day, prefixes, tz, labelPattern, capMs, unpriced);
     if (!rows.length) continue;
     const agent = sessionLabel(meta, config);
     const workspace = workspaceLabel(meta, config);
@@ -309,6 +323,8 @@ export async function collect(options = {}) {
         if (row.branch) record.branch = row.branch;
         record.spans = row.spans.map(([from, to]) => [clock(from), clock(to)]);
         record.busyMs = row.spans.reduce((total, [from, to]) => total + (to - from), 0);
+        record.cost = row.cost;
+        record.tokens = row.tokens;
         human.push(record);
       } else if (kind === "slash") {
         const m = row.text.match(/<command-name>\s*([^<]+)/) ?? row.text.match(/<command-message>\s*([^<]+)/);
@@ -322,11 +338,19 @@ export async function collect(options = {}) {
 
   const bySession = {};
   const busyBySession = {};
+  const costBySession = {};
+  const tokensBySession = {};
   let busyTotal = 0;
+  let costTotal = 0;
+  let tokenTotal = 0;
   for (const row of human) {
     bySession[row.session] = (bySession[row.session] ?? 0) + 1;
     busyBySession[row.session] = (busyBySession[row.session] ?? 0) + row.busyMs;
+    costBySession[row.session] = (costBySession[row.session] ?? 0) + row.cost;
+    tokensBySession[row.session] = (tokensBySession[row.session] ?? 0) + row.tokens;
     busyTotal += row.busyMs;
+    costTotal += row.cost;
+    tokenTotal += row.tokens;
   }
 
   return {
@@ -339,6 +363,12 @@ export async function collect(options = {}) {
       busy_ms: busyTotal,
       busy_gap_cap_minutes: busyGapCapMinutes,
       busy_ms_by_session: busyBySession,
+      // API-equivalent, not a bill: Claude Code subscriptions are not billed per token.
+      cost_usd: costTotal,
+      cost_by_session: costBySession,
+      tokens: tokenTotal,
+      tokens_by_session: tokensBySession,
+      unpriced_models: [...unpriced].sort(),
       by_session: Object.fromEntries(Object.entries(bySession).sort((a, b) => b[1] - a[1])),
       excluded: Object.fromEntries(
         ["teammate", "task_notif", "bash_io", "continuation", "interrupt", "sdk_filtered"]

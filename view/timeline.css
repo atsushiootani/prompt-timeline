@@ -52,9 +52,11 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-busy.hidden{display:none}
 .pt-dot{position:absolute;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);
   border:1.5px solid var(--card);box-shadow:0 1px 3px rgba(120,90,70,.28);cursor:pointer;
-  transition:width .1s,height .1s;z-index:2}
-.pt-dot:hover,.pt-dot.active{width:14px;height:14px;z-index:5}
+  transition:transform .1s;z-index:2}
+/* 径は指標に応じて JS が入れるので、拡大は width ではなく scale で行う。 */
+.pt-dot:hover,.pt-dot.active{transform:translate(-50%,-50%) scale(1.4);z-index:5}
 .pt-dot.slash{border-radius:3px;transform:translate(-50%,-50%) rotate(45deg)}
+.pt-dot.slash:hover,.pt-dot.slash.active{transform:translate(-50%,-50%) rotate(45deg) scale(1.4)}
 .pt-dot.hidden{display:none}
 .pt-empty{color:var(--sub);text-align:center;padding:40px 0;font-size:13px}
 .pt-empty-mascot{width:64px;height:64px;border-radius:16px;opacity:.85;margin:0 auto 12px;
@@ -93,3 +95,12 @@ body{margin:0;background:var(--bg);color:var(--ink);
   display:flex;align-items:flex-start;gap:7px}
 .pt-mark{width:18px;height:18px;border-radius:5px;flex:none;opacity:.7;margin-top:2px;
   background:var(--pt-mascot) center/cover no-repeat}
+
+/* ---- 指標の切り替えと列ごとの合計 ---- */
+.pt-colhead .pt-total{font-size:9px;font-weight:800;margin-top:2px;letter-spacing:.02em}
+.pt-metrics{display:flex;align-items:center;gap:6px;margin:12px 0 0;font-size:11px}
+.pt-metrics-label{color:var(--sub)}
+.pt-metrics button{font:inherit;cursor:pointer;padding:3px 10px;border-radius:999px;
+  border:1px solid var(--lane);background:var(--card);color:var(--sub)}
+.pt-metrics button:hover{border-color:var(--sub)}
+.pt-metrics button.on{color:var(--ink);font-weight:800;border-color:var(--sub)}

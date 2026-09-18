@@ -19,7 +19,7 @@
   var GUTTER  = 32,   // width of the time labels
       COLW_MIN = 62,  // narrowest a session column gets
       COLW_MAX = 150, // widest, so a couple of sessions don't sprawl
-      HEAD    = 52,   // height of the column headers
+      HEAD    = 52,   // height of the column headers (grows when a total is shown)
       PAD     = 14,   // breathing room at the top and bottom of the plot
       HOURPX  = 96;   // pixels per hour. Busy spans are read as length, so they need the room.
 
@@ -33,6 +33,18 @@
     var p = String(hhmmss).split(":").map(Number);
     return (p[0] || 0) * 60 + (p[1] || 0) + (p[2] || 0) / 60;
   }
+
+  // 表示できる指標。cost は API 換算、tokens は transcript にある生の数。
+  var METRICS = {
+    cost:   { label: "cost",   of: function (r) { return r.cost || 0; },
+              fmt: function (v) { return v >= 10 ? "$" + v.toFixed(0) : "$" + v.toFixed(2); } },
+    tokens: { label: "tokens", of: function (r) { return r.tokens || 0; },
+              fmt: function (v) {
+                if (v >= 1e6) return (v / 1e6).toFixed(v >= 1e7 ? 0 : 1) + "M";
+                if (v >= 1e3) return Math.round(v / 1e3) + "k";
+                return String(Math.round(v));
+              } },
+  };
 
   function mmss(ms) {
     var s = Math.round((ms || 0) / 1000);
@@ -61,25 +73,29 @@
     return i > 0 ? { ws: s.slice(0, i), name: s.slice(i + 1) } : { ws: "", name: s };
   }
 
-  function buildColumns(rows, agents) {
+  function buildColumns(rows, agents, metric) {
     var index = {}, cols = [];
     rows.forEach(function (r) {
       var key = r.session || "?";
       if (!(key in index)) {
         var parts = splitSession(r);
         index[key] = cols.length;
-        cols.push({ key: key, ws: parts.ws, name: parts.name, n: 0, slash: 0,
+        cols.push({ key: key, ws: parts.ws, name: parts.name, n: 0, slash: 0, total: 0,
                     color: (agents && agents[parts.name] && agents[parts.name].color) || null });
       }
       var c = cols[index[key]];
       if (r.kind === "slash") c.slash++; else c.n++;
+      if (metric) c.total += metric.of(r);
     });
-    // 並び: ワークスペース名 → 件数の多い順 → 名前。多く使ったセッションを左に寄せる。
-    cols.sort(function (a, b) {
-      return String(a.ws).localeCompare(String(b.ws)) ||
-             (b.n + b.slash) - (a.n + a.slash) ||
-             String(a.name).localeCompare(String(b.name));
-    });
+    // 指標を選んでいるときは、食っている順に左から並べる。答えが一番左に来る。
+    // 選んでいなければ従来どおり ワークスペース → 件数 → 名前。
+    cols.sort(metric
+      ? function (a, b) { return b.total - a.total || String(a.name).localeCompare(String(b.name)); }
+      : function (a, b) {
+          return String(a.ws).localeCompare(String(b.ws)) ||
+                 (b.n + b.slash) - (a.n + a.slash) ||
+                 String(a.name).localeCompare(String(b.name));
+        });
     cols.forEach(function (c, i) {
       if (!c.color) c.color = FALLBACK[i % FALLBACK.length];
       index[c.key] = i;
@@ -99,6 +115,7 @@
     data = data || {};
     var agents = data.agents || {};
     var showSlash = opts.showSlash !== false;
+    var metric = METRICS[opts.metric] || null;
 
     // 人が打った分とスラッシュコマンドを 1 本の列にまとめる
     var rows = (data.human_prompts || []).map(function (r) {
@@ -122,7 +139,16 @@
       return;
     }
 
-    var built = buildColumns(rows, agents), cols = built.cols, colOf = built.index;
+    var built = buildColumns(rows, agents, metric), cols = built.cols, colOf = built.index;
+    var head = metric ? HEAD + 12 : HEAD;   // 合計の行が 1 本増えるぶん
+
+    // 点の大きさは指標の平方根に比例させる。面積が値に比例して見えるのはこちら。
+    var peak = 0;
+    if (metric) rows.forEach(function (r) { peak = Math.max(peak, metric.of(r)); });
+    function radiusOf(r) {
+      if (!metric || !peak) return null;
+      return 5 + Math.sqrt(metric.of(r) / peak) * 13;
+    }
 
     // 時間の範囲は 1 時間単位に丸める（最低 1 時間幅）。
     // 最後のプロンプトの後もエージェントが動き続けることがあるので、その終わりまで含める。
@@ -141,13 +167,13 @@
     var COLW = Math.max(COLW_MIN, Math.min(COLW_MAX,
                  cols.length ? Math.floor((avail - GUTTER) / cols.length) : COLW_MIN));
     var width = GUTTER + cols.length * COLW;
-    var yOf = function (m) { return HEAD + PAD + (m - lo) / (hi - lo) * (plotH - 2 * PAD); };
+    var yOf = function (m) { return head + PAD + (m - lo) / (hi - lo) * (plotH - 2 * PAD); };
 
     var panel = el("div", "pt-panel", host);
     var scroll = el("div", "pt-scroll", panel);
     var plot = el("div", "pt-plot", scroll);
     plot.style.width = width + "px";
-    plot.style.height = (HEAD + plotH) + "px";
+    plot.style.height = (head + plotH) + "px";
 
     // 1 時間ごとの横罫線
     for (var m = lo; m <= hi; m += 60) {
@@ -166,15 +192,21 @@
       var x = GUTTER + i * COLW;
       var lane = el("div", "pt-lane", plot);
       lane.style.left = (x + COLW / 2) + "px";
-      lane.style.top = HEAD + "px";
+      lane.style.top = head + "px";
 
       var head = el("div", "pt-colhead", plot);
       head.style.left = x + "px";
       head.style.width = COLW + "px";
-      head.title = c.key + " - " + c.n + " prompts" + (c.slash ? ", " + c.slash + " commands" : "");
+      head.title = c.key + " - " + c.n + " prompts" + (c.slash ? ", " + c.slash + " commands" : "") +
+        (metric ? " - " + metric.fmt(c.total) + " " + metric.label : "");
       el("div", "pt-ws", head).textContent = c.ws || "";
       el("div", "pt-nm", head).textContent = c.name;
       el("div", "pt-bar", head).style.background = c.color;
+      if (metric) {
+        var tot = el("div", "pt-total", head);
+        tot.textContent = metric.fmt(c.total);
+        tot.style.color = c.color;
+      }
       head.addEventListener("click", function () { toggle(c.key); });
       c.headNode = head;
     });
@@ -210,11 +242,16 @@
       d.style.top = yOf(toMinutes(r.time)) + "px";
       d.style.background = c.color;
       d.dataset.session = r.session || "?";
+      var radius = radiusOf(r);
+      if (radius != null) { d.style.width = radius + "px"; d.style.height = radius + "px"; }
 
       d.addEventListener("mouseenter", function () {
         tip.innerHTML = '<div class="pt-tip-head">' + esc(r.time) + " ・ " + esc(r.session || "") +
           (r.kind === "slash" ? " - command" : "") +
           (r.busyMs ? ' ・ <span class="pt-busy-tag">' + esc(mmss(r.busyMs)) + " busy</span>" : "") +
+          // 金額とトークンは常に並べる。価格表が古びてもトークン数は事実として残る。
+          (r.cost ? ' ・ <span class="pt-busy-tag">' + esc(METRICS.cost.fmt(r.cost)) +
+                    " / " + esc(METRICS.tokens.fmt(r.tokens || 0)) + "</span>" : "") +
           "</div>" + esc(r.text || "");
         tip.classList.add("show");
         var box = d.getBoundingClientRect();
@@ -234,6 +271,18 @@
       });
       dots.push({ node: d, session: r.session || "?" });
     });
+
+    // 指標の切り替え。点の大きさと列の並びが変わる。
+    if (opts.onMetric) {
+      var picker = el("div", "pt-metrics", host);
+      el("span", "pt-metrics-label", picker).textContent = "size by";
+      [["none", "count"], ["cost", "cost"], ["tokens", "tokens"]].forEach(function (pair) {
+        var b = el("button", opts.metric === pair[0] || (!metric && pair[0] === "none") ? "on" : null, picker);
+        b.type = "button";
+        b.textContent = pair[1];
+        b.addEventListener("click", function () { opts.onMetric(pair[0]); });
+      });
+    }
 
     // 凡例（押すとそのセッションだけ隠す / 戻す）
     var legend = el("div", "pt-legend", host);
@@ -286,7 +335,9 @@
       detailParts.when.textContent =
         r.time + (r.branch ? "  ·  " + r.branch : "") + (r.kind === "slash" ? "  ·  command" : "") +
         (r.busyMs ? "  ·  " + mmss(r.busyMs) + " busy"
-                    + ((r.spans || []).length > 1 ? " / " + r.spans.length + " spans" : "") : "");
+                    + ((r.spans || []).length > 1 ? " / " + r.spans.length + " spans" : "") : "") +
+        (r.cost ? "  ·  " + METRICS.cost.fmt(r.cost) + " api-equivalent"
+                  + "  ·  " + METRICS.tokens.fmt(r.tokens || 0) + " tokens" : "");
       detailParts.body.textContent = r.text || "(no body)";
       detailParts.box.classList.add("show");
     }

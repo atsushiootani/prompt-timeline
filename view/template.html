@@ -66,15 +66,29 @@
   if (summary.busy_ms) {
     stat(stats, PromptTimeline.formatDuration(summary.busy_ms), "agent busy");
   }
+  if (summary.cost_usd) {
+    stat(stats, "$" + summary.cost_usd.toFixed(2), "api-equivalent");
+    stat(stats, (summary.tokens / 1e6).toFixed(1) + "M", "tokens");
+    var top = Object.entries(summary.cost_by_session || {}).sort(function (a, b) { return b[1] - a[1]; })[0];
+    if (top) stat(stats, "$" + top[1].toFixed(2), "priciest: " + top[0].split(".").pop());
+  }
 
   var host = document.getElementById("ptTimeline");
-  PromptTimeline.mount(host, data);
+  // Sizing dots by cost is the point of the page when there is cost to show.
+  var metric = summary.cost_usd ? "cost" : "none";
+  function draw() {
+    PromptTimeline.mount(host, data, {
+      metric: metric,
+      onMetric: function (next) { metric = next; draw(); },
+    });
+  }
+  draw();
 
   // Column width is derived from the space available, so redraw when that changes.
   var resizeTimer = null;
   window.addEventListener("resize", function () {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(function () { PromptTimeline.mount(host, data); }, 150);
+    resizeTimer = setTimeout(draw, 150);
   });
 
   var excluded = summary.excluded || {};

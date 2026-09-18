@@ -100,6 +100,27 @@ job and a session abandoned mid-tool look identical, and guessing "busy" would d
 days long. The one thing the transcript cannot separate out is time spent waiting for you
 to approve a tool — that reads as busy.
 
+## Cost, and why it is not the token count
+
+Columns are ordered by what they spent and labelled with it, so the priciest session is
+the leftmost one. Dot area is that prompt's share. The `size by` buttons switch the whole
+view between **cost** and **tokens** — or back to plain dots.
+
+They are not the same ranking, which is the reason both are here. Cached input is billed
+at a tenth of the input rate and output at five times it, so a token is not a token:
+across one real day the effective rate ranged from $0.33 to $1.37 per million, and five of
+ten sessions changed places depending on which you sorted by.
+
+**The dollars are an API-equivalent, not a bill.** A Claude Code subscription is not billed
+per token; the figure is what the same traffic would have cost on the API, which is useful
+for comparing sessions and nothing else. Token counts are always shown beside it — prices
+drift and new models appear, but the counts in the transcript stay true, so a stale price
+table can be caught. A model with no price is counted in tokens and listed under
+`unpriced_models` rather than quietly valued at zero.
+
+> The 1-hour cache-write multiplier in `src/pricing.mjs` is **not yet verified** against
+> published pricing. It moves a day's total by a few percent and does not reorder sessions.
+
 ## What counts as "a prompt you typed"
 
 `type === "user"` records, minus everything the machine injected. Dropped: tool results,
