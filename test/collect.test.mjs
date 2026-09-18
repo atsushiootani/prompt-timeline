@@ -155,6 +155,27 @@ test("render inlines everything and survives token-like prompt text", async () =
   assert.equal(parsed.human_prompts[0].text, "__JS__ and </script>");
 });
 
+test("the mascot is inlined, and a missing one does not break the page", async () => {
+  const data = {
+    date: "2026-09-16",
+    summary: { human_prompts: 0, slash_commands: 0, by_session: {}, excluded: {} },
+    agents: {}, human_prompts: [], slash_commands: [],
+  };
+
+  const html = await render(data);
+  assert.ok(!html.includes("__ICON__"), "every icon slot should be filled");
+
+  // The art is tens of kilobytes. Carrying it once and reusing it is the whole point:
+  // a copy per use site tripled the size of the page.
+  const copies = html.match(/data:image\/png;base64,/g) ?? [];
+  assert.equal(copies.length, 1, "the icon must be inlined exactly once");
+
+  // Art is decoration: a checkout without it must still render.
+  const bare = await render(data, { iconFile: "/nonexistent/icon.png" });
+  assert.ok(!bare.includes("__ICON__"), "the slot should still be filled when the art is missing");
+  assert.ok(bare.includes("PromptTimeline"), "the page should render regardless");
+});
+
 test("an unreadable date is rejected", async () => {
   const root = await fixture([userRecord("x")]);
   try {

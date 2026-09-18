@@ -5,16 +5,33 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>__TITLE__</title>
 <style>__CSS__</style>
+<script>
+// The mascot is a ~55KB data URI, so it is carried once and reused from a custom
+// property. Inlining it at each use site tripled the size of the page.
+(function () {
+  var icon = "__ICON__";
+  if (!icon) return;
+  document.documentElement.style.setProperty("--pt-mascot", 'url("' + icon + '")');
+  var link = document.createElement("link");
+  link.rel = "icon";
+  link.href = icon;
+  document.head.appendChild(link);
+})();
+</script>
 </head>
 <body>
 <div class="pt-wrap">
   <div class="pt-head">
+    <span class="pt-mascot" aria-hidden="true"></span>
     <h1>Prompt Timeline</h1>
     <div class="pt-date" id="ptDate"></div>
   </div>
   <div class="pt-stats" id="ptStats"></div>
   <div id="ptTimeline"></div>
-  <div class="pt-foot" id="ptFoot"></div>
+  <div class="pt-foot">
+    <span class="pt-mark" aria-hidden="true"></span>
+    <span id="ptFoot"></span>
+  </div>
 </div>
 <script>window.PROMPT_TIMELINE_DATA = __DATA__;</script>
 <script>__JS__</script>
@@ -45,6 +62,9 @@
     stat(stats, rows[0].time.slice(0, 5) + " - " + rows[rows.length - 1].time.slice(0, 5), "first to last");
     var chars = rows.reduce(function (sum, r) { return sum + (r.chars || (r.text || "").length); }, 0);
     stat(stats, Math.round(chars / rows.length), "avg characters");
+  }
+  if (summary.busy_ms) {
+    stat(stats, PromptTimeline.formatDuration(summary.busy_ms), "agent busy");
   }
 
   var host = document.getElementById("ptTimeline");

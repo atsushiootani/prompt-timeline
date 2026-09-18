@@ -80,8 +80,23 @@ prompt-timeline render  --in FILE [--out FILE] JSON -> a single HTML file
 | `--drop-sdk` | also drop SDK / system-injected turns |
 | `--projects-dir DIR` | where transcripts live (default: `~/.claude/projects`) |
 | `--tz HOURS` | display against a fixed UTC offset instead of this machine's |
+| `--busy-gap-cap MINUTES` | how long a silence can get before a busy span is cut (default: 30) |
 | `--title TEXT` | page title |
 | `--config FILE` | session names and colours (default: `config/agents.json` if present) |
+
+## The busy lines
+
+Next to each dot runs a coloured line: the stretch where the agent owed you an answer.
+It opens at your prompt and closes when the assistant hands control back (`end_turn`).
+The quiet while a tool runs is **inside** that line on purpose — a twenty-minute poll is
+twenty minutes you were waiting, and the point of the line is to show that.
+
+Work that starts again afterwards (a background task reporting in) draws a second line, so
+the real idle in between is not painted over. A single silence longer than `--busy-gap-cap`
+(30 minutes by default) ends the line where the transcript went quiet: past that, a long
+job and a session abandoned mid-tool look identical, and guessing "busy" would draw bars
+days long. The one thing the transcript cannot separate out is time spent waiting for you
+to approve a tool — that reads as busy.
 
 ## What counts as "a prompt you typed"
 
@@ -145,4 +160,17 @@ given, and the view follows `prefers-color-scheme` for dark mode.
 
 ## License
 
-MIT
+The code is MIT — see [`LICENSE`](LICENSE).
+
+### The mascot
+
+`assets/concier-chan.png` is **not** covered by that MIT grant. It was generated with
+Google Gemini and is used under Google's Terms of Service, which disclaim Google's
+ownership of generated output. Because a purely AI-generated image may not be eligible
+for copyright protection (see the U.S. Copyright Office, *Copyright and Artificial
+Intelligence, Part 2: Copyrightability*, January 2025), no copyright is asserted in it.
+To the extent any rights do exist, it is released under
+[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) — take it and use it.
+
+The file ships byte-for-byte as generated and may carry Google's invisible SynthID
+watermark and C2PA content credentials. Please don't strip them.

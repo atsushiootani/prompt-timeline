@@ -117,9 +117,45 @@ async function listTranscripts(root) {
   return files.sort();
 }
 
+/**
+ * Turn a turn's worth of records into the stretches where the agent owed you an answer.
+ *
+ * A stretch opens at your prompt and closes when an assistant turn comes back with
+ * `end_turn` — that is the moment control is handed back. Everything in between counts,
+ * including the silence while a tool runs, because a twenty-minute poll is twenty minutes
+ * the agent was occupied. Work that starts up again after `end_turn` (a background task
+ * reporting in) opens a new stretch, so the real idle between them is not painted over.
+ *
+ * `capMs` is the one guard: past that much silence we can no longer tell a long job from a
+ * session that was abandoned mid-tool, so the stretch stops at the last thing we saw.
+ */
+function busySpans(promptAt, records, capMs) {
+  const spans = [];
+  let start = null;
+  let last = null;
+
+  for (const rec of records) {
+    if (start === null) {
+      start = last === null ? promptAt : rec.at;
+      last = rec.at;
+    } else if (rec.at - last > capMs) {
+      spans.push([start, last]);
+      start = rec.at;
+    }
+    last = rec.at;
+    if (rec.handsBack) {
+      spans.push([start, last]);
+      start = null;
+    }
+  }
+  if (start !== null && last !== null) spans.push([start, last]);
+  return spans.filter(([from, to]) => to > from);
+}
+
 /** Read one transcript, returning the day's records plus whatever names it carries. */
-async function scanFile(file, day, prefixes, tz, labelPattern) {
+async function scanFile(file, day, prefixes, tz, labelPattern, capMs) {
   const rows = [];
+  const activity = [];
   const meta = { cwd: null, agentName: null, sessionId: null, ruleHits: new Map(), file };
   const cheapKeys = prefixes.map((p) => `"${p}`);
 
@@ -156,9 +192,22 @@ async function scanFile(file, day, prefixes, tz, labelPattern) {
           meta.ruleHits.set(captured, (meta.ruleHits.get(captured) ?? 0) + 1);
         }
       }
+      const at = Date.parse(obj.timestamp);
+
+      // Everything the agent did is activity: its own turns, and the tool results coming
+      // back to it. Only a main-thread `end_turn` hands control back — a sub-agent's does not.
+      if (obj.type === "assistant") {
+        activity.push({ at, handsBack: obj.message?.stop_reason === "end_turn" && !obj.isSidechain });
+        continue;
+      }
+
       const text = userText(obj);
-      if (text === null) continue;
+      if (text === null) {
+        if (obj.type === "user") activity.push({ at, handsBack: false });
+        continue;
+      }
       rows.push({
+        at,
         time: parts.time,
         text,
         promptSource: obj.promptSource ?? null,
@@ -168,6 +217,20 @@ async function scanFile(file, day, prefixes, tz, labelPattern) {
   } finally {
     rl.close();
   }
+
+  // Each prompt owns the activity between it and the next prompt. Both lists are walked
+  // once in step rather than re-scanned per prompt — transcripts run to hundreds of MB.
+  rows.sort((a, b) => a.at - b.at);
+  activity.sort((a, b) => a.at - b.at);
+  let cursor = 0;
+  for (let i = 0; i < rows.length; i += 1) {
+    const until = i + 1 < rows.length ? rows[i + 1].at : Infinity;
+    while (cursor < activity.length && activity[cursor].at <= rows[i].at) cursor += 1;
+    const start = cursor;
+    while (cursor < activity.length && activity[cursor].at < until) cursor += 1;
+    rows[i].spans = busySpans(rows[i].at, activity.slice(start, cursor), capMs);
+  }
+
   return { rows, meta };
 }
 
@@ -197,6 +260,7 @@ export async function collect(options = {}) {
     tz = null,
     includeText = true,
     dropSdk = false,
+    busyGapCapMinutes = 30,
   } = options;
 
   const day = date ?? todayIn(tz);
@@ -216,9 +280,11 @@ export async function collect(options = {}) {
   const human = [];
   const slash = [];
   const bump = (key) => counts.set(key, (counts.get(key) ?? 0) + 1);
+  const capMs = Math.max(0, busyGapCapMinutes) * 60 * 1000;
+  const clock = (ms) => localParts(new Date(ms).toISOString(), tz).time;
 
   for (const file of files) {
-    const { rows, meta } = await scanFile(file, day, prefixes, tz, labelPattern);
+    const { rows, meta } = await scanFile(file, day, prefixes, tz, labelPattern, capMs);
     if (!rows.length) continue;
     const agent = sessionLabel(meta, config);
     const workspace = workspaceLabel(meta, config);
@@ -241,6 +307,8 @@ export async function collect(options = {}) {
         if (includeText) record.text = row.text;
         record.chars = row.text.length;
         if (row.branch) record.branch = row.branch;
+        record.spans = row.spans.map(([from, to]) => [clock(from), clock(to)]);
+        record.busyMs = row.spans.reduce((total, [from, to]) => total + (to - from), 0);
         human.push(record);
       } else if (kind === "slash") {
         const m = row.text.match(/<command-name>\s*([^<]+)/) ?? row.text.match(/<command-message>\s*([^<]+)/);
@@ -253,7 +321,13 @@ export async function collect(options = {}) {
   slash.sort((a, b) => a.time.localeCompare(b.time));
 
   const bySession = {};
-  for (const row of human) bySession[row.session] = (bySession[row.session] ?? 0) + 1;
+  const busyBySession = {};
+  let busyTotal = 0;
+  for (const row of human) {
+    bySession[row.session] = (bySession[row.session] ?? 0) + 1;
+    busyBySession[row.session] = (busyBySession[row.session] ?? 0) + row.busyMs;
+    busyTotal += row.busyMs;
+  }
 
   return {
     date: day,
@@ -262,6 +336,9 @@ export async function collect(options = {}) {
     summary: {
       human_prompts: human.length,
       slash_commands: slash.length,
+      busy_ms: busyTotal,
+      busy_gap_cap_minutes: busyGapCapMinutes,
+      busy_ms_by_session: busyBySession,
       by_session: Object.fromEntries(Object.entries(bySession).sort((a, b) => b[1] - a[1])),
       excluded: Object.fromEntries(
         ["teammate", "task_notif", "bash_io", "continuation", "interrupt", "sdk_filtered"]

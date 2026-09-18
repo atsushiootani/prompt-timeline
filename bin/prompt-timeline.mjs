@@ -31,6 +31,7 @@ Options
   --config FILE        session names and colours (default: config/agents.json if present)
   --projects-dir DIR   where transcripts live (default: ~/.claude/projects)
   --tz HOURS           fixed UTC offset for display (default: this machine's setting)
+  --busy-gap-cap MIN   silence that ends a busy span, in minutes (default: 30)
   --no-text            drop prompt bodies (session and branch names still remain)
   --drop-sdk           also drop SDK / system-injected turns
   -h, --help           show this
@@ -61,6 +62,7 @@ function parseArgs(argv) {
       case "--config": opts.config = takesValue(arg); break;
       case "--projects-dir": opts.projectsDir = takesValue(arg); break;
       case "--tz": opts.tz = Number(takesValue(arg)); break;
+      case "--busy-gap-cap": opts.busyGapCap = Number(takesValue(arg)); break;
       case "--no-text": opts.noText = true; break;
       case "--drop-sdk": opts.dropSdk = true; break;
       default:
@@ -88,6 +90,9 @@ async function resolveConfig(given) {
 async function runCollect(opts) {
   const config = await resolveConfig(opts.config);
   if (opts.tz !== undefined && Number.isNaN(opts.tz)) throw new Error("--tz must be a number, e.g. --tz 9");
+  if (opts.busyGapCap !== undefined && !(opts.busyGapCap >= 0)) {
+    throw new Error("--busy-gap-cap must be a number of minutes, e.g. --busy-gap-cap 30");
+  }
   const data = await collect({
     date: opts.date,
     projectsDir: expandHome(opts.projectsDir) ?? DEFAULT_PROJECTS_DIR,
@@ -95,13 +100,17 @@ async function runCollect(opts) {
     tz: opts.tz ?? null,
     includeText: !opts.noText,
     dropSdk: Boolean(opts.dropSdk),
+    ...(opts.busyGapCap !== undefined ? { busyGapCapMinutes: opts.busyGapCap } : {}),
   });
   return data;
 }
 
 function report(data) {
   const sessions = Object.keys(data.summary.by_session).length;
-  console.log(`human=${data.summary.human_prompts} slash=${data.summary.slash_commands} sessions=${sessions}`);
+  const busy = Math.round((data.summary.busy_ms ?? 0) / 60000);
+  console.log(
+    `human=${data.summary.human_prompts} slash=${data.summary.slash_commands} sessions=${sessions} busy=${busy}m`,
+  );
   if (data.summary.human_prompts === 0) {
     console.log("nothing found for that day — check --date, or --projects-dir if your transcripts live elsewhere");
   }

@@ -18,8 +18,11 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-wrap{max-width:1280px;margin:0 auto;padding:22px 18px 60px}
 
 /* ---- header ---- */
-.pt-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 16px;margin-bottom:6px}
+.pt-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:6px}
 .pt-head h1{font-size:20px;margin:0;font-weight:800;letter-spacing:.01em}
+/* すべて同じ --pt-mascot を参照する。実体は1つだけページに載っている。 */
+.pt-mascot{width:34px;height:34px;border-radius:9px;flex:none;box-shadow:0 1px 4px rgba(120,90,70,.22);
+  background:var(--pt-mascot) center/cover no-repeat}
 .pt-date{font-size:14px;font-weight:700;color:var(--sub)}
 .pt-stats{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 18px}
 .pt-stat{background:var(--card);border:1px solid var(--line);border-radius:12px;
@@ -35,7 +38,7 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-gridline{position:absolute;left:0;right:0;border-top:1px solid var(--grid)}
 .pt-gridline .pt-time{position:absolute;left:0;top:-10px;width:28px;text-align:right;
   font-size:9px;line-height:1.02;color:var(--sub)}
-.pt-lane{position:absolute;top:0;bottom:0;border-left:1px dashed var(--lane)}
+.pt-lane{position:absolute;top:0;bottom:0;border-left:1px dashed var(--lane);z-index:0}
 .pt-colhead{position:absolute;top:0;text-align:center;padding:2px 3px;overflow:hidden;cursor:pointer;
   font-size:9.5px;line-height:1.16;border-radius:7px}
 .pt-colhead:hover{background:var(--lane)}
@@ -43,13 +46,19 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-colhead .pt-ws{color:var(--sub);font-size:8.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pt-colhead .pt-nm{font-weight:800;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
 .pt-colhead .pt-bar{height:3px;border-radius:2px;margin:3px auto 0;width:76%}
+/* エージェントが応答を抱えていた時間。レーンの点線の真上を、ドットの下に潜って走る。 */
+.pt-busy{position:absolute;width:6px;transform:translateX(-50%);border-radius:3px;opacity:.55;z-index:1}
+.pt-busy:hover{opacity:.9}
+.pt-busy.hidden{display:none}
 .pt-dot{position:absolute;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);
   border:1.5px solid var(--card);box-shadow:0 1px 3px rgba(120,90,70,.28);cursor:pointer;
-  transition:width .1s,height .1s}
+  transition:width .1s,height .1s;z-index:2}
 .pt-dot:hover,.pt-dot.active{width:14px;height:14px;z-index:5}
 .pt-dot.slash{border-radius:3px;transform:translate(-50%,-50%) rotate(45deg)}
 .pt-dot.hidden{display:none}
 .pt-empty{color:var(--sub);text-align:center;padding:40px 0;font-size:13px}
+.pt-empty-mascot{width:64px;height:64px;border-radius:16px;opacity:.85;margin:0 auto 12px;
+  background:var(--pt-mascot) center/cover no-repeat}
 
 /* ---- hover tooltip ---- */
 .pt-tip{position:fixed;z-index:90;max-width:380px;max-height:52vh;overflow:auto;
@@ -58,6 +67,7 @@ body{margin:0;background:var(--bg);color:var(--ink);
   pointer-events:none;opacity:0;transition:opacity .12s;white-space:pre-wrap;word-break:break-word}
 .pt-tip.show{opacity:1}
 .pt-tip .pt-tip-head{font-weight:800;font-size:11px;opacity:.75;margin-bottom:4px}
+.pt-tip .pt-busy-tag{font-weight:800}
 
 /* ---- detail panel for the selected prompt ---- */
 .pt-detail{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:16px;
@@ -79,4 +89,7 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-legend button.muted{opacity:.4}
 .pt-legend .pt-swatch{width:9px;height:9px;border-radius:50%}
 .pt-legend .pt-n{color:var(--sub)}
-.pt-foot{margin-top:20px;font-size:11px;color:var(--sub);line-height:1.7}
+.pt-foot{margin-top:20px;font-size:11px;color:var(--sub);line-height:1.7;
+  display:flex;align-items:flex-start;gap:7px}
+.pt-mark{width:18px;height:18px;border-radius:5px;flex:none;opacity:.7;margin-top:2px;
+  background:var(--pt-mascot) center/cover no-repeat}

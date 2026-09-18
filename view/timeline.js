@@ -21,7 +21,7 @@
       COLW_MAX = 150, // widest, so a couple of sessions don't sprawl
       HEAD    = 52,   // height of the column headers
       PAD     = 14,   // breathing room at the top and bottom of the plot
-      HOURPX  = 62;   // pixels per hour
+      HOURPX  = 96;   // pixels per hour. Busy spans are read as length, so they need the room.
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -32,6 +32,14 @@
   function toMinutes(hhmmss) {
     var p = String(hhmmss).split(":").map(Number);
     return (p[0] || 0) * 60 + (p[1] || 0) + (p[2] || 0) / 60;
+  }
+
+  function mmss(ms) {
+    var s = Math.round((ms || 0) / 1000);
+    if (s < 60) return s + "s";
+    var m = Math.floor(s / 60);
+    if (m < 60) return m + "m " + (s % 60) + "s";
+    return Math.floor(m / 60) + "h " + (m % 60) + "m";
   }
 
   function el(tag, cls, parent) {
@@ -104,15 +112,25 @@
     rows.sort(function (a, b) { return String(a.time).localeCompare(String(b.time)); });
 
     if (!rows.length) {
-      el("div", "pt-empty", host).textContent =
+      var empty = el("div", "pt-empty", host);
+      // 絵は --pt-mascot から引く。data URI はページに 1 つしか載せない。
+      if (getComputedStyle(document.documentElement).getPropertyValue("--pt-mascot").trim()) {
+        el("div", "pt-empty-mascot", empty);
+      }
+      el("div", null, empty).textContent =
         "No prompts recorded for " + (data.date || "this day") + ".";
       return;
     }
 
     var built = buildColumns(rows, agents), cols = built.cols, colOf = built.index;
 
-    // 時間の範囲は 1 時間単位に丸める（最低 1 時間幅）
-    var mins = rows.map(function (r) { return toMinutes(r.time); });
+    // 時間の範囲は 1 時間単位に丸める（最低 1 時間幅）。
+    // 最後のプロンプトの後もエージェントが動き続けることがあるので、その終わりまで含める。
+    var mins = [];
+    rows.forEach(function (r) {
+      mins.push(toMinutes(r.time));
+      (r.spans || []).forEach(function (sp) { mins.push(toMinutes(sp[1])); });
+    });
     var lo = Math.floor(Math.min.apply(null, mins) / 60) * 60;
     var hi = Math.ceil(Math.max.apply(null, mins) / 60) * 60;
     if (hi - lo < 60) hi = lo + 60;
@@ -141,6 +159,7 @@
 
     var hidden = {};   // セッション名 → 非表示か（凡例・見出しクリックで切り替える）
     var dots = [];
+    var bars = [];     // ビジー線。点と一緒に隠す
 
     // セッションの列（縦線＋見出し）
     cols.forEach(function (c, i) {
@@ -160,6 +179,27 @@
       c.headNode = head;
     });
 
+    // ビジー線。エージェントが応答を抱えていた時間を、そのセッションの色で縦に引く。
+    // 点より先に描いて下に敷く。線が詰まっている列ほど、その日ずっと回していたセッション。
+    rows.forEach(function (r) {
+      var spans = r.spans || [];
+      if (!spans.length) return;
+      var i = colOf[r.session || "?"];
+      var c = cols[i];
+      if (c == null) return;
+      spans.forEach(function (sp) {
+        var top = yOf(toMinutes(sp[0]));
+        var bar = el("div", "pt-busy", plot);
+        bar.style.left = (GUTTER + i * COLW + COLW / 2) + "px";
+        bar.style.top = top + "px";
+        // 数秒のスパンは 62px/時 だと消えてしまうので、最低 2px は見せる。
+        bar.style.height = Math.max(2, yOf(toMinutes(sp[1])) - top) + "px";
+        bar.style.background = c.color;
+        bar.title = sp[0] + " - " + sp[1] + " (" + mmss(r.busyMs) + " busy)";
+        bars.push({ node: bar, session: r.session || "?" });
+      });
+    });
+
     // 点（プロンプト 1 通 = 1 点）
     var tip = tipNode();
     rows.forEach(function (r) {
@@ -173,7 +213,9 @@
 
       d.addEventListener("mouseenter", function () {
         tip.innerHTML = '<div class="pt-tip-head">' + esc(r.time) + " ・ " + esc(r.session || "") +
-          (r.kind === "slash" ? " - command" : "") + "</div>" + esc(r.text || "");
+          (r.kind === "slash" ? " - command" : "") +
+          (r.busyMs ? ' ・ <span class="pt-busy-tag">' + esc(mmss(r.busyMs)) + " busy</span>" : "") +
+          "</div>" + esc(r.text || "");
         tip.classList.add("show");
         var box = d.getBoundingClientRect();
         tip.style.left = "0px"; tip.style.top = "0px";        // いったん置いて実寸を測る
@@ -210,6 +252,7 @@
     function toggle(key) {
       hidden[key] = !hidden[key];
       dots.forEach(function (o) { o.node.classList.toggle("hidden", !!hidden[o.session]); });
+      bars.forEach(function (o) { o.node.classList.toggle("hidden", !!hidden[o.session]); });
       cols.forEach(function (c) {
         if (c.legendNode) c.legendNode.classList.toggle("muted", !!hidden[c.key]);
         if (c.headNode) c.headNode.classList.toggle("muted", !!hidden[c.key]);
@@ -241,11 +284,13 @@
       detailParts.swatch.style.background = c.color;
       detailParts.who.textContent = r.session || "";
       detailParts.when.textContent =
-        r.time + (r.branch ? "  ·  " + r.branch : "") + (r.kind === "slash" ? "  ·  command" : "");
+        r.time + (r.branch ? "  ·  " + r.branch : "") + (r.kind === "slash" ? "  ·  command" : "") +
+        (r.busyMs ? "  ·  " + mmss(r.busyMs) + " busy"
+                    + ((r.spans || []).length > 1 ? " / " + r.spans.length + " spans" : "") : "");
       detailParts.body.textContent = r.text || "(no body)";
       detailParts.box.classList.add("show");
     }
   }
 
-  global.PromptTimeline = { mount: mount };
+  global.PromptTimeline = { mount: mount, formatDuration: mmss };
 })(this);
