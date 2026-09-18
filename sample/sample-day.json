@@ -5,6 +5,15 @@
   "summary": {
     "human_prompts": 42,
     "slash_commands": 6,
+    "busy_ms": 18940000,
+    "busy_gap_cap_minutes": 30,
+    "busy_ms_by_session": {
+      "webapp.main": 7051000,
+      "webapp.tests": 2920000,
+      "api-server.review": 4724000,
+      "webapp.docs": 2243000,
+      "api-server.9f2c41b7": 2002000
+    },
     "by_session": {
       "webapp.main": 18,
       "webapp.tests": 10,
@@ -43,7 +52,14 @@
       "agent": "main",
       "text": "Let's start the checkout flow. Read src/checkout/ and tell me how the cart state is held today before you change anything.",
       "chars": 122,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "09:12:46",
+          "09:14:05"
+        ]
+      ],
+      "busyMs": 79000
     },
     {
       "time": "09:42:25",
@@ -52,7 +68,14 @@
       "agent": "main",
       "text": "Cart total is wrong when a discount code is applied twice. Reproduce it in a test first, then fix it.",
       "chars": 101,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "09:42:25",
+          "09:51:09"
+        ]
+      ],
+      "busyMs": 524000
     },
     {
       "time": "10:13:19",
@@ -61,7 +84,14 @@
       "agent": "tests",
       "text": "Set up a test harness for the checkout module. Table-driven, no mocking framework.",
       "chars": 82,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "10:13:19",
+          "10:14:16"
+        ]
+      ],
+      "busyMs": 57000
     },
     {
       "time": "10:14:05",
@@ -70,7 +100,14 @@
       "agent": "main",
       "text": "Why is applyDiscount mutating the cart in place? Walk me through the call chain.",
       "chars": 80,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "10:14:05",
+          "10:15:09"
+        ]
+      ],
+      "busyMs": 64000
     },
     {
       "time": "10:42:08",
@@ -79,7 +116,14 @@
       "agent": "tests",
       "text": "Add cases for the double-discount bug we just fixed.",
       "chars": 52,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "10:42:08",
+          "10:42:59"
+        ]
+      ],
+      "busyMs": 51000
     },
     {
       "time": "10:50:01",
@@ -88,7 +132,14 @@
       "agent": "main",
       "text": "Extract the tax calculation into its own module. Keep the public signature stable.",
       "chars": 82,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "10:50:01",
+          "10:53:31"
+        ]
+      ],
+      "busyMs": 210000
     },
     {
       "time": "11:14:52",
@@ -97,7 +148,14 @@
       "agent": "review",
       "text": "Review the open PR on api-server for correctness only. Skip style.",
       "chars": 66,
-      "branch": "main"
+      "branch": "main",
+      "spans": [
+        [
+          "11:14:52",
+          "11:25:34"
+        ]
+      ],
+      "busyMs": 642000
     },
     {
       "time": "11:17:03",
@@ -106,7 +164,14 @@
       "agent": "main",
       "text": "That broke the currency rounding. Show me the diff again.",
       "chars": 57,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "11:17:03",
+          "11:23:03"
+        ]
+      ],
+      "busyMs": 360000
     },
     {
       "time": "11:27:14",
@@ -115,7 +180,18 @@
       "agent": "tests",
       "text": "Cover the zero-quantity and negative-quantity paths too.",
       "chars": 56,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "11:27:14",
+          "11:30:18"
+        ],
+        [
+          "11:34:25",
+          "11:38:59"
+        ]
+      ],
+      "busyMs": 458000
     },
     {
       "time": "11:48:50",
@@ -124,7 +200,14 @@
       "agent": "review",
       "text": "The rate limiter looks like it resets the window on every request. Verify that claim before I comment.",
       "chars": 102,
-      "branch": "main"
+      "branch": "main",
+      "spans": [
+        [
+          "11:48:50",
+          "11:54:32"
+        ]
+      ],
+      "busyMs": 342000
     },
     {
       "time": "12:03:52",
@@ -133,7 +216,14 @@
       "agent": "main",
       "text": "Use integer cents everywhere instead of floats. Update the callers too.",
       "chars": 71,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "12:03:52",
+          "12:10:30"
+        ]
+      ],
+      "busyMs": 398000
     },
     {
       "time": "12:07:56",
@@ -142,7 +232,14 @@
       "agent": "tests",
       "text": "This test passes even when I break the implementation. Make it discriminating.",
       "chars": 78,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "12:07:56",
+          "12:14:02"
+        ]
+      ],
+      "busyMs": 366000
     },
     {
       "time": "12:25:41",
@@ -151,7 +248,18 @@
       "agent": "main",
       "text": "Now wire the new tax module into the checkout summary component.",
       "chars": 64,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "12:25:41",
+          "12:30:19"
+        ],
+        [
+          "12:33:51",
+          "12:40:29"
+        ]
+      ],
+      "busyMs": 676000
     },
     {
       "time": "12:45:14",
@@ -160,7 +268,14 @@
       "agent": "review",
       "text": "Confirmed - write it up as a review comment with a concrete failure scenario.",
       "chars": 77,
-      "branch": "main"
+      "branch": "main",
+      "spans": [
+        [
+          "12:45:14",
+          "12:53:28"
+        ]
+      ],
+      "busyMs": 494000
     },
     {
       "time": "13:10:09",
@@ -169,7 +284,14 @@
       "agent": "tests",
       "text": "Add a property test for the rounding: total should always equal the sum of line items.",
       "chars": 86,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "13:10:09",
+          "13:20:20"
+        ]
+      ],
+      "busyMs": 611000
     },
     {
       "time": "13:16:52",
@@ -178,7 +300,14 @@
       "agent": "main",
       "text": "The summary re-renders on every keystroke. Find out why.",
       "chars": 56,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "13:16:52",
+          "13:19:48"
+        ]
+      ],
+      "busyMs": 176000
     },
     {
       "time": "13:20:57",
@@ -187,7 +316,14 @@
       "agent": "docs",
       "text": "Write the README section for the checkout module. Explain the cents convention up front.",
       "chars": 88,
-      "branch": "main"
+      "branch": "main",
+      "spans": [
+        [
+          "13:20:57",
+          "13:26:08"
+        ]
+      ],
+      "busyMs": 311000
     },
     {
       "time": "13:31:28",
@@ -196,7 +332,14 @@
       "agent": "main",
       "text": "Memoize it, but only if the inputs really are stable - check first.",
       "chars": 67,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "13:31:28",
+          "13:32:50"
+        ]
+      ],
+      "busyMs": 82000
     },
     {
       "time": "13:47:05",
@@ -205,7 +348,14 @@
       "agent": "review",
       "text": "Is there a test that would have caught this?",
       "chars": 44,
-      "branch": "main"
+      "branch": "main",
+      "spans": [
+        [
+          "13:47:05",
+          "13:57:54"
+        ]
+      ],
+      "busyMs": 649000
     },
     {
       "time": "13:47:56",
@@ -214,7 +364,14 @@
       "agent": "tests",
       "text": "It found a counterexample - show me the failing input.",
       "chars": 54,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "13:47:56",
+          "13:48:42"
+        ]
+      ],
+      "busyMs": 46000
     },
     {
       "time": "14:08:18",
@@ -223,7 +380,14 @@
       "agent": "main",
       "text": "Run the whole suite and show me only the failures.",
       "chars": 50,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "14:08:18",
+          "14:09:08"
+        ]
+      ],
+      "busyMs": 50000
     },
     {
       "time": "14:17:38",
@@ -232,7 +396,14 @@
       "agent": "docs",
       "text": "Too long. Cut the background and keep the how-to.",
       "chars": 49,
-      "branch": "main"
+      "branch": "main",
+      "spans": [
+        [
+          "14:17:38",
+          "14:20:40"
+        ]
+      ],
+      "busyMs": 182000
     },
     {
       "time": "14:32:14",
@@ -241,7 +412,14 @@
       "agent": "review",
       "text": "Suggest the smallest fix that keeps the existing interface.",
       "chars": 59,
-      "branch": "main"
+      "branch": "main",
+      "spans": [
+        [
+          "14:32:14",
+          "14:53:57"
+        ]
+      ],
+      "busyMs": 1303000
     },
     {
       "time": "14:35:07",
@@ -250,7 +428,14 @@
       "agent": "tests",
       "text": "Fix the implementation, not the test.",
       "chars": 37,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "14:35:07",
+          "14:42:57"
+        ]
+      ],
+      "busyMs": 470000
     },
     {
       "time": "14:40:45",
@@ -259,7 +444,14 @@
       "agent": "9f2c41b7",
       "text": "Quick question - what's the default timeout on the http client in this repo?",
       "chars": 76,
-      "branch": "fix/rate-limit"
+      "branch": "fix/rate-limit",
+      "spans": [
+        [
+          "14:40:45",
+          "14:50:51"
+        ]
+      ],
+      "busyMs": 606000
     },
     {
       "time": "14:47:43",
@@ -268,7 +460,14 @@
       "agent": "main",
       "text": "Two of those failures look like fixture drift, not real breakage. Confirm which.",
       "chars": 80,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "14:47:43",
+          "15:07:59"
+        ]
+      ],
+      "busyMs": 1216000
     },
     {
       "time": "14:53:23",
@@ -277,7 +476,14 @@
       "agent": "9f2c41b7",
       "text": "Where is that configured?",
       "chars": 25,
-      "branch": "fix/rate-limit"
+      "branch": "fix/rate-limit",
+      "spans": [
+        [
+          "14:53:23",
+          "15:03:13"
+        ]
+      ],
+      "busyMs": 590000
     },
     {
       "time": "15:00:03",
@@ -286,7 +492,14 @@
       "agent": "review",
       "text": "Post the comment.",
       "chars": 17,
-      "branch": "main"
+      "branch": "main",
+      "spans": [
+        [
+          "15:00:03",
+          "15:21:37"
+        ]
+      ],
+      "busyMs": 1294000
     },
     {
       "time": "15:03:40",
@@ -295,7 +508,14 @@
       "agent": "tests",
       "text": "Measure coverage on src/checkout only.",
       "chars": 38,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "15:03:40",
+          "15:05:52"
+        ]
+      ],
+      "busyMs": 132000
     },
     {
       "time": "15:05:41",
@@ -304,7 +524,14 @@
       "agent": "9f2c41b7",
       "text": "Thanks, that's all I needed.",
       "chars": 28,
-      "branch": "fix/rate-limit"
+      "branch": "fix/rate-limit",
+      "spans": [
+        [
+          "15:05:41",
+          "15:19:07"
+        ]
+      ],
+      "busyMs": 806000
     },
     {
       "time": "15:31:35",
@@ -313,7 +540,14 @@
       "agent": "main",
       "text": "Update the fixtures, leave the assertions alone.",
       "chars": 48,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "15:31:35",
+          "15:32:43"
+        ]
+      ],
+      "busyMs": 68000
     },
     {
       "time": "15:42:04",
@@ -322,7 +556,14 @@
       "agent": "tests",
       "text": "Ignore the generated files in the coverage config.",
       "chars": 50,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "15:42:04",
+          "15:45:03"
+        ]
+      ],
+      "busyMs": 179000
     },
     {
       "time": "15:50:17",
@@ -331,7 +572,14 @@
       "agent": "main",
       "text": "Commit this with a message that explains the cents change, not just 'fix tax'.",
       "chars": 78,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "15:50:17",
+          "15:52:39"
+        ]
+      ],
+      "busyMs": 142000
     },
     {
       "time": "15:54:47",
@@ -340,7 +588,14 @@
       "agent": "docs",
       "text": "Add a short table of the error codes the module can return.",
       "chars": 59,
-      "branch": "main"
+      "branch": "main",
+      "spans": [
+        [
+          "15:54:47",
+          "16:01:38"
+        ]
+      ],
+      "busyMs": 411000
     },
     {
       "time": "16:22:16",
@@ -349,7 +604,14 @@
       "agent": "docs",
       "text": "Link to the ADR about integer money instead of restating it.",
       "chars": 60,
-      "branch": "main"
+      "branch": "main",
+      "spans": [
+        [
+          "16:22:16",
+          "16:33:26"
+        ]
+      ],
+      "busyMs": 670000
     },
     {
       "time": "16:22:40",
@@ -358,7 +620,14 @@
       "agent": "main",
       "text": "What's still left before this branch is reviewable?",
       "chars": 51,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "16:22:40",
+          "16:28:14"
+        ]
+      ],
+      "busyMs": 334000
     },
     {
       "time": "16:24:51",
@@ -367,7 +636,14 @@
       "agent": "tests",
       "text": "Run it once more and give me the final number.",
       "chars": 46,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "16:24:51",
+          "16:34:01"
+        ]
+      ],
+      "busyMs": 550000
     },
     {
       "time": "16:47:58",
@@ -376,7 +652,18 @@
       "agent": "main",
       "text": "Add an error state for when the discount service times out.",
       "chars": 59,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "16:47:58",
+          "16:50:14"
+        ],
+        [
+          "16:54:56",
+          "17:00:06"
+        ]
+      ],
+      "busyMs": 446000
     },
     {
       "time": "17:29:46",
@@ -385,7 +672,18 @@
       "agent": "main",
       "text": "Retry twice with backoff, then fall back to no discount and log it.",
       "chars": 67,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "17:29:46",
+          "17:34:53"
+        ],
+        [
+          "17:38:10",
+          "17:44:22"
+        ]
+      ],
+      "busyMs": 679000
     },
     {
       "time": "17:40:00",
@@ -394,7 +692,14 @@
       "agent": "docs",
       "text": "Proofread the whole file for consistency in terminology.",
       "chars": 56,
-      "branch": "main"
+      "branch": "main",
+      "spans": [
+        [
+          "17:40:00",
+          "17:51:09"
+        ]
+      ],
+      "busyMs": 669000
     },
     {
       "time": "18:13:24",
@@ -403,7 +708,14 @@
       "agent": "main",
       "text": "Don't swallow the error - surface it to the caller as well.",
       "chars": 59,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "18:13:24",
+          "18:34:42"
+        ]
+      ],
+      "busyMs": 1278000
     },
     {
       "time": "18:40:27",
@@ -412,7 +724,14 @@
       "agent": "main",
       "text": "Good. Now write the changelog entry.",
       "chars": 36,
-      "branch": "feat/checkout-flow"
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "18:40:27",
+          "18:44:56"
+        ]
+      ],
+      "busyMs": 269000
     }
   ],
   "slash_commands": [

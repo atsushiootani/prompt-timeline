@@ -1,13 +1,15 @@
 # prompt-timeline
 
 See a day of your own Claude Code work as a timeline: **time runs down, sessions run across.**
-One dot is one prompt you typed. Hover it to read the prompt, click it for the full text.
+One dot is one prompt you typed, and the line under it is how long the agent stayed busy
+answering. Hover a dot to read the prompt, click it for the full text.
 
 [日本語版 README](README.ja.md)
 
 ![The timeline, with a prompt shown on hover](docs/screenshot.png)
 
-Clicking a dot opens the whole prompt underneath, with the branch it was typed on:
+A column thick with line is a session that ran all day; a bare one is a session you only
+poked. Clicking a dot opens the whole prompt underneath, with the branch and the time it took:
 
 ![Clicking a dot opens the full prompt](docs/screenshot-detail.png)
 

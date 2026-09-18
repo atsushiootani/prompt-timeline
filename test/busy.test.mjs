@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { collect } from "../src/collect.mjs";
@@ -134,6 +134,29 @@ test("busy time is summarised per day and per session", async () => {
   ]);
   assert.equal(doc.summary.busy_ms, 5 * 60 * 1000);
   assert.equal(doc.summary.busy_ms_by_session["webapp.11111111"], 5 * 60 * 1000);
+});
+
+test("the bundled sample carries spans the view can draw", async () => {
+  const here = path.dirname(new URL(import.meta.url).pathname);
+  const sample = JSON.parse(await readFile(path.join(here, "..", "sample", "sample-day.json"), "utf8"));
+
+  assert.ok(sample.summary.busy_ms > 0, "the sample should have busy time to show");
+  assert.equal(
+    sample.human_prompts.reduce((sum, row) => sum + row.busyMs, 0),
+    sample.summary.busy_ms,
+    "the per-prompt totals and the day total must agree",
+  );
+
+  for (const row of sample.human_prompts) {
+    assert.ok(Array.isArray(row.spans), `${row.time} should carry spans`);
+    assert.equal(row.spans[0][0], row.time, "a span starts when you hit enter");
+    let previousEnd = null;
+    for (const [from, to] of row.spans) {
+      assert.ok(to > from, `${row.time} has a span that does not move forward`);
+      if (previousEnd) assert.ok(from >= previousEnd, `${row.time} has overlapping spans`);
+      previousEnd = to;
+    }
+  }
 });
 
 test("a prompt with no answer has no spans", async () => {
