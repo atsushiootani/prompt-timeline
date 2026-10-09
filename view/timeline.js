@@ -104,8 +104,10 @@
     return { cols: cols, index: index };
   }
 
-  /* 色はセッションに付け、並び順には付けない。cost/tokens を切り替えて列が入れ替わっても
-     同じセッションは同じ色のまま。順番は「その日に初めて現れた順」で固定する。
+  /* 色はセッションに付け、表示の並び順には付けない。cost/tokens を切り替えて列が入れ替わっても
+     同じセッションは同じ色のまま。色を配る順は「その日どれだけ動いたか」（件数 → 稼働時間 →
+     初めて現れた時刻）で、size by とは無関係に 1 日の中で固定。8 色を超えたら、灰色になるのは
+     その日いちばん動かなかったセッションになる。
      設定ファイルが使っている色の枠は飛ばすので、2 つのセッションが同じ色になることはない。 */
   function assignColors(cols, firstSeen) {
     var taken = {};
@@ -113,7 +115,10 @@
     var free = [];
     SLOTS.forEach(function (hex, i) { if (!taken[hex]) free.push("var(--pt-s" + (i + 1) + ")"); });
     var order = cols.filter(function (c) { return !c.color; })
-      .sort(function (a, b) { return firstSeen[a.key].localeCompare(firstSeen[b.key]) || a.key.localeCompare(b.key); });
+      .sort(function (a, b) {
+        return (b.n + b.slash) - (a.n + a.slash) || (b.busy || 0) - (a.busy || 0) ||
+               firstSeen[a.key].localeCompare(firstSeen[b.key]) || a.key.localeCompare(b.key);
+      });
     order.forEach(function (c, i) {
       // 9 本目以降は色を作らない。灰色に落として、見出しの名前で区別させる。
       c.color = i < free.length ? free[i] : "var(--pt-other)";
@@ -459,7 +464,7 @@
       fill.style.width = (top ? valueOf(c) / top * 100 : 0) + "%";
       fill.style.background = c.color;
       el("div", "pt-row-sub", li).textContent =
-        (c.n + c.slash) + " prompts" +
+        (c.n + c.slash) + (c.n + c.slash === 1 ? " prompt" : " prompts") +
         (c.busy ? " · " + mmss(c.busy) + " busy" : "") +
         // 上の行に出している指標は繰り返さない。
         (c.cost && opts.metric !== "cost" ? " · " + METRICS.cost.fmt(c.cost) : "") +
@@ -540,29 +545,35 @@
       };
       var snip = function (r) {
         if (!r.text) return (r.chars || 0) + " characters (text not included)";
-        var t = r.text.replace(/\s+/g, " ").trim();
+        // 先頭の <tag>…</tag> の塊（ダッシュボードやフックが差し込む文脈）は抜粋では飛ばす。
+        // 全文のシートでは一切いじらない。
+        var body = r.text.replace(/^(\s*<([A-Za-z][\w-]*)[^>]*>[\s\S]*?<\/\2>\s*)+/, "");
+        var t = (body.trim() || r.text).replace(/\s+/g, " ").trim();
         return "“" + (t.length > 84 ? t.slice(0, 84) + "…" : t) + "”";
       };
       var cards = [];
+      // 同じプロンプトが複数の「瞬間」に当たったら、カードは 1 枚にまとめて肩書きを足す。
+      function put(card) {
+        var same = cards.filter(function (c) { return c.row === card.row && !c.group && !card.group; })[0];
+        if (!same) { cards.push(card); return; }
+        same.label += " — and the " + card.label.charAt(0).toLowerCase() + card.label.slice(1);
+        same.note = [same.note, card.value + (card.note ? " · " + card.note : "")].filter(Boolean).join(" · ");
+      }
       var longest = maxBy(function (r) { return r.busyMs || 0; });
-      if (longest) cards.push({ label: "Longest run", value: mmss(longest.busyMs), row: longest });
+      if (longest) put({ label: "Longest run", value: mmss(longest.busyMs), row: longest });
       var pricey = maxBy(function (r) { return r.cost || 0; });
-      // 一番長く走ったのと一番高いのが同じプロンプトなら、カードを 2 枚使わず 1 枚にまとめる。
-      if (pricey && longest === pricey) {
-        cards[cards.length - 1].label = "Longest run — and the priciest";
-        cards[cards.length - 1].note = METRICS.cost.fmt(pricey.cost) + " · " + METRICS.tokens.fmt(pricey.tokens || 0) + " tokens";
-      } else if (pricey) cards.push({ label: "Priciest prompt", value: METRICS.cost.fmt(pricey.cost), row: pricey,
-                               note: METRICS.tokens.fmt(pricey.tokens || 0) + " tokens" });
+      if (pricey) put({ label: "Priciest prompt", value: METRICS.cost.fmt(pricey.cost), row: pricey,
+                        note: METRICS.tokens.fmt(pricey.tokens || 0) + " tokens" });
       else {
         var heavy = maxBy(function (r) { return r.tokens || 0; });
-        if (heavy) cards.push({ label: "Most tokens", value: METRICS.tokens.fmt(heavy.tokens), row: heavy });
+        if (heavy) put({ label: "Most tokens", value: METRICS.tokens.fmt(heavy.tokens), row: heavy });
       }
       var loop = tightestLoop(human, 6, 3);
-      if (loop) cards.push({ label: "Tightest loop", value: loop.rows.length + " prompts in " + Math.max(1, Math.round(loop.minutes)) + "m",
+      if (loop) put({ label: "Tightest loop", value: loop.rows.length + " prompts in " + Math.max(1, Math.round(loop.minutes)) + "m",
                              row: loop.rows[0], group: loop.rows,
                              note: "avg " + loop.avgChars + " characters" + (loop.avgChars < 60 ? " — quick corrections?" : " — feeding in detail") });
       var essay = maxBy(function (r) { return r.chars || 0; });
-      if (essay) cards.push({ label: "Longest prompt you wrote", value: (essay.chars || 0).toLocaleString() + " chars", row: essay });
+      if (essay) put({ label: "Longest prompt you wrote", value: (essay.chars || 0).toLocaleString() + " chars", row: essay });
       if (!cards.length) return;
 
       var box = el("div", "pt-moments", side);
