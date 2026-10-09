@@ -164,6 +164,31 @@
     return { n: best, at: at };
   }
 
+  /* 時間軸を「稼働した時間帯」と「畳む空白」に分ける。
+     プロンプトもビジー区間も無い時間が 2 時間以上続いたら 1 本の細い帯に畳む。
+     1 時間だけの空白は残す（昼休みはその日のリズムの一部で、捨てる空白ではない）。
+     ビジー区間が掛かった時間も稼働扱いなので、区間が帯をまたぐことはない。 */
+  function foldAxis(rows, fromHour, toHour, minRun) {
+    var active = {};
+    rows.forEach(function (r) {
+      active[Math.floor(toMinutes(r.time) / 60)] = true;
+      (r.spans || []).forEach(function (sp) {
+        var a = toMinutes(sp[0]), b = toMinutes(sp[1]);
+        for (var h = Math.floor(a / 60); h * 60 < Math.max(b, a + 1e-9); h++) active[h] = true;
+      });
+    });
+    var segs = [], h = fromHour;
+    while (h < toHour) {
+      var start = h, on = !!active[h];
+      while (h < toHour && !!active[h] === on) h++;
+      var len = h - start;
+      if (!on && len >= minRun) segs.push({ fold: true, from: start, to: h });
+      else if (segs.length && !segs[segs.length - 1].fold) segs[segs.length - 1].to = h;
+      else segs.push({ fold: false, from: start, to: h });
+    }
+    return segs;
+  }
+
   function tipNode() {
     var t = document.getElementById("ptTip");
     if (!t) { t = el("div", "pt-tip"); t.id = "ptTip"; document.body.appendChild(t); }
@@ -225,7 +250,11 @@
     var hi = Math.ceil(Math.max.apply(null, mins) / 60) * 60;
     if (hi - lo < 60) hi = lo + 60;
 
-    var plotH = Math.max(240, (hi - lo) / 60 * HOURPX);
+    var FOLDPX = 30;
+    var segs = foldAxis(rows, lo / 60, hi / 60, 2);
+    var acc = 0;
+    segs.forEach(function (sg) { sg.y = acc; acc += sg.fold ? FOLDPX : (sg.to - sg.from) * HOURPX; });
+    var plotH = Math.max(240, acc + 2 * PAD);
 
     // 左にセッションの順位表、右にタイムライン。表は凡例を兼ねる。
     var grid = el("div", "pt-grid", host);
@@ -237,7 +266,17 @@
     var COLW = Math.max(COLW_MIN, Math.min(COLW_MAX,
                  cols.length ? Math.floor((avail - GUTTER) / cols.length) : COLW_MIN));
     var width = GUTTER + cols.length * COLW;
-    var yOf = function (m) { return head + PAD + (m - lo) / (hi - lo) * (plotH - 2 * PAD); };
+    // 区分線形: 稼働した時間帯は 1 時間 = HOURPX、畳んだ空白は FOLDPX の固定幅。
+    var yOf = function (m) {
+      for (var i = 0; i < segs.length; i++) {
+        var sg = segs[i];
+        if (m <= sg.to * 60 || i === segs.length - 1) {
+          var dm = Math.max(0, Math.min(m, sg.to * 60) - sg.from * 60);
+          return head + PAD + sg.y + (sg.fold ? FOLDPX / 2 : dm / 60 * HOURPX);
+        }
+      }
+      return head + PAD;
+    };
 
     var panel = el("div", "pt-panel", main);
     var scroll = el("div", "pt-scroll", panel);
@@ -245,13 +284,24 @@
     plot.style.width = width + "px";
     plot.style.height = (head + plotH) + "px";
 
-    // 1 時間ごとの横罫線
-    for (var m = lo; m <= hi; m += 60) {
-      var g = el("div", "pt-gridline", plot);
-      g.style.top = yOf(m) + "px";
-      var lab = el("div", "pt-time", g);
-      lab.innerHTML = String(Math.floor(m / 60) % 24).padStart(2, "0") + "<br>00";
-    }
+    // 1 時間ごとの横罫線。畳んだ空白は罫線の代わりに「何時間なにも無かったか」の帯。
+    var hh = function (h) { return String(h % 24).padStart(2, "0"); };
+    segs.forEach(function (sg) {
+      if (sg.fold) {
+        var band = el("div", "pt-fold", plot);
+        band.style.top = (head + PAD + sg.y) + "px";
+        band.style.height = FOLDPX + "px";
+        band.style.left = GUTTER + "px";
+        band.textContent = "≈ " + (sg.to - sg.from) + "h with nothing running  ·  " + hh(sg.from) + ":00 – " + hh(sg.to) + ":00";
+        return;
+      }
+      for (var h = sg.from; h <= sg.to; h++) {
+        var g = el("div", "pt-gridline", plot);
+        g.style.top = (head + PAD + sg.y + (h - sg.from) * HOURPX) + "px";
+        var lab = el("div", "pt-time", g);
+        lab.innerHTML = hh(h) + "<br>00";
+      }
+    });
 
     var hidden = {};   // セッション名 → 非表示か（凡例・見出しクリックで切り替える）
     var dots = [];
@@ -510,5 +560,5 @@
   global.PromptTimeline = { mount: mount, formatDuration: mmss,
     // テスト用。描画には使わない。
     _internal: { buildColumns: buildColumns, assignColors: assignColors, METRICS: METRICS, SLOTS: SLOTS,
-                 hourly: hourly, peakConcurrency: peakConcurrency } };
+                 hourly: hourly, peakConcurrency: peakConcurrency, foldAxis: foldAxis } };
 })(this);

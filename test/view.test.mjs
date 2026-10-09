@@ -66,3 +66,24 @@ test("peak concurrency counts overlapping runs, not hand-offs", () => {
   assert.equal(peak.n, 3);
   assert.equal(peak.at, 10 * 60 + 40);
 });
+
+const { foldAxis } = sandbox.PromptTimeline._internal;
+
+test("two or more idle hours fold; a single idle hour stays", () => {
+  const rows = [
+    { time: "06:50:00" },
+    { time: "09:10:00" },              // 07, 08 idle -> fold
+    { time: "11:30:00" },              // 10 idle alone -> kept
+    { time: "22:05:00", spans: [["22:05:00", "22:40:00"]] },  // 12..21 idle -> fold
+  ];
+  const segs = foldAxis(rows, 6, 23, 2).map((s) => [s.fold, s.from, s.to]);
+  assert.deepEqual(JSON.parse(JSON.stringify(segs)), [
+    [false, 6, 7], [true, 7, 9], [false, 9, 12], [true, 12, 22], [false, 22, 23],
+  ]);
+});
+
+test("an hour the agent was busy in is never folded away", () => {
+  // Typed at 10:50, ran until 13:10: 11 and 12 have no prompt but were busy.
+  const segs = foldAxis([{ time: "10:50:00", spans: [["10:50:00", "13:10:00"]] }], 10, 14, 2);
+  assert.ok(segs.every((s) => !s.fold));
+});
