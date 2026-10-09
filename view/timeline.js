@@ -120,6 +120,50 @@
     });
   }
 
+  /* 時間帯ごとの値をセッション別に数える。
+     件数はプロンプトを打った時刻の枠へ。金額とトークンは、エージェントが動いていた区間の
+     分数に比例して各時間帯へ配る（14:50 に投げて 15:30 まで回ったら両方の枠に乗る）。 */
+  function hourly(rows, metric, fromHour, toHour) {
+    var n = toHour - fromHour, by = {};
+    function add(key, h, v) {
+      if (h < fromHour || h >= toHour) return;
+      (by[key] = by[key] || new Array(n).fill(0))[h - fromHour] += v;
+    }
+    rows.forEach(function (r) {
+      var key = r.session || "?";
+      if (!metric) { add(key, Math.floor(toMinutes(r.time) / 60), 1); return; }
+      var v = metric.of(r);
+      if (!v) return;
+      var spans = (r.spans || []).map(function (sp) { return [toMinutes(sp[0]), toMinutes(sp[1])]; })
+        .filter(function (sp) { return sp[1] > sp[0]; });
+      var len = spans.reduce(function (a, sp) { return a + sp[1] - sp[0]; }, 0);
+      if (!len) { add(key, Math.floor(toMinutes(r.time) / 60), v); return; }
+      spans.forEach(function (sp) {
+        for (var h = Math.floor(sp[0] / 60); h * 60 < sp[1]; h++) {
+          var part = Math.min(sp[1], (h + 1) * 60) - Math.max(sp[0], h * 60);
+          if (part > 0) add(key, h, v * part / len);
+        }
+      });
+    });
+    return by;
+  }
+
+  /* 同時に動いていたエージェントの最大数と、その時刻。全スパンの開始と終了を時刻順に掃く。
+     同じ時刻なら終了を先に数える（バトンを渡しただけの瞬間を「2 本同時」と数えない）。 */
+  function peakConcurrency(rows) {
+    var ev = [];
+    rows.forEach(function (r) {
+      (r.spans || []).forEach(function (sp) {
+        var a = toMinutes(sp[0]), b = toMinutes(sp[1]);
+        if (b > a) { ev.push([a, 1]); ev.push([b, -1]); }
+      });
+    });
+    ev.sort(function (x, y) { return x[0] - y[0] || x[1] - y[1]; });
+    var now = 0, best = 0, at = null;
+    ev.forEach(function (e) { now += e[1]; if (now > best) { best = now; at = e[0]; } });
+    return { n: best, at: at };
+  }
+
   function tipNode() {
     var t = document.getElementById("ptTip");
     if (!t) { t = el("div", "pt-tip"); t.id = "ptTip"; document.body.appendChild(t); }
@@ -390,6 +434,73 @@
       detailParts.box.classList.add("show");
     }
 
+    // 時間帯グラフ（ページが置き場所を渡してきたときだけ）。列はセッション別の積み上げで、
+    // 順位表と同じ並び・同じ色。cost / tokens / prompts は size by に従う。
+    if (opts.hourlyHost) drawHours(opts.hourlyHost);
+
+    function drawHours(box) {
+      box.innerHTML = "";
+      var h0 = Math.floor(lo / 60), h1 = Math.ceil(hi / 60);
+      var by = hourly(rows, metric, h0, h1);
+      var totals = [];
+      for (var k = 0; k < h1 - h0; k++) {
+        totals.push(cols.reduce(function (a, c) { return a + ((by[c.key] || [])[k] || 0); }, 0));
+      }
+      var maxV = Math.max.apply(null, totals.concat([0]));
+      var fmt = metric ? metric.fmt : function (v) { return String(Math.round(v)); };
+      var unit = metric ? "" : " prompts";
+      var peakH = totals.indexOf(maxV);
+      var conc = peakConcurrency(rows);
+      var hhmm = function (m) { return String(Math.floor(m / 60) % 24).padStart(2, "0") + ":" + String(Math.round(m % 60)).padStart(2, "0"); };
+
+      var cap = el("div", "pt-hours-cap", box);
+      if (maxV) {
+        var a = el("span", null, cap);
+        a.appendChild(document.createTextNode("Busiest hour "));
+        el("b", null, a).textContent = String(h0 + peakH).padStart(2, "0") + ":00";
+        a.appendChild(document.createTextNode(" · " + fmt(maxV) + unit));
+      }
+      if (conc.n > 1) {
+        var b2 = el("span", null, cap);
+        el("b", null, b2).textContent = conc.n + " agents";
+        b2.appendChild(document.createTextNode(" running at once at " + hhmm(conc.at)));
+      }
+
+      var plotBox = el("div", "pt-hours-plot", box);
+      el("div", "pt-hours-max", plotBox).textContent = maxV ? fmt(maxV) + unit : "";
+      var colsRow = el("div", "pt-hours-cols", plotBox);
+      var PH = 112;
+      for (var i = 0; i < h1 - h0; i++) (function (i) {
+        var col = el("div", "pt-hcol", colsRow);
+        var stack = el("div", "pt-hstack", col);
+        stack.style.height = (maxV ? totals[i] / maxV * PH : 0) + "px";
+        cols.forEach(function (c) {
+          var v = (by[c.key] || [])[i] || 0;
+          if (!v || hidden[c.key]) return;
+          var seg = el("div", "pt-hseg", stack);
+          seg.style.flexGrow = String(v);
+          seg.style.background = c.color;
+        });
+        var lab = el("span", "pt-hlab", col);
+        lab.textContent = String((h0 + i) % 24).padStart(2, "0");
+        col.addEventListener("mouseenter", function () {
+          var lines = cols.filter(function (c) { return (by[c.key] || [])[i]; }).map(function (c) {
+            return '<div class="pt-tip-row"><i style="background:' + esc(c.color) + '"></i>' + esc(c.name) +
+              "<b>" + esc(fmt(by[c.key][i])) + unit + "</b></div>";
+          }).join("");
+          tip.innerHTML = '<div class="pt-tip-head">' + String(h0 + i).padStart(2, "0") + ":00 – " +
+            String(h0 + i + 1).padStart(2, "0") + ":00 · " + esc(fmt(totals[i])) + unit + "</div>" + (lines || "nothing");
+          tip.classList.add("show");
+          var r = col.getBoundingClientRect();
+          tip.style.left = "0px"; tip.style.top = "0px";
+          var tx = Math.min(r.right + 8, innerWidth - tip.offsetWidth - 8);
+          tip.style.left = Math.max(8, tx) + "px";
+          tip.style.top = Math.max(8, r.top - 10) + "px";
+        });
+        col.addEventListener("mouseleave", function () { tip.classList.remove("show"); });
+      })(i);
+    }
+
     // 見出しの一文など、ページ側が同じ色を使えるように返す。
     var colorOf = {};
     cols.forEach(function (c) { colorOf[c.key] = c.color; });
@@ -398,5 +509,6 @@
 
   global.PromptTimeline = { mount: mount, formatDuration: mmss,
     // テスト用。描画には使わない。
-    _internal: { buildColumns: buildColumns, assignColors: assignColors, METRICS: METRICS, SLOTS: SLOTS } };
+    _internal: { buildColumns: buildColumns, assignColors: assignColors, METRICS: METRICS, SLOTS: SLOTS,
+                 hourly: hourly, peakConcurrency: peakConcurrency } };
 })(this);
