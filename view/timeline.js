@@ -189,6 +189,33 @@
     return segs;
   }
 
+  /* 同じセッションで、間隔 gapMin 分以内のプロンプトが minLen 本以上続いた所のうち、一番濃い所。
+     本数が多い方、同数なら短い時間に詰まっている方を選ぶ。苦戦かどうかは判定しない ——
+     平均文字数を添えて、短い打ち直しの連打か、長い仕様の流し込みかは読む人に見分けてもらう。 */
+  function tightestLoop(rows, gapMin, minLen) {
+    var bySession = {};
+    rows.forEach(function (r) { (bySession[r.session || "?"] = bySession[r.session || "?"] || []).push(r); });
+    var best = null;
+    Object.keys(bySession).forEach(function (key) {
+      var list = bySession[key].slice().sort(function (a, b) { return toMinutes(a.time) - toMinutes(b.time); });
+      var run = [list[0]];
+      function close() {
+        if (run.length < minLen) return;
+        var dur = toMinutes(run[run.length - 1].time) - toMinutes(run[0].time);
+        if (!best || run.length > best.rows.length || (run.length === best.rows.length && dur < best.minutes)) {
+          var chars = run.reduce(function (a, r) { return a + (r.chars || (r.text || "").length); }, 0);
+          best = { session: key, rows: run.slice(), minutes: dur, avgChars: Math.round(chars / run.length) };
+        }
+      }
+      for (var i = 1; i < list.length; i++) {
+        if (toMinutes(list[i].time) - toMinutes(list[i - 1].time) <= gapMin) run.push(list[i]);
+        else { close(); run = [list[i]]; }
+      }
+      close();
+    });
+    return best;
+  }
+
   function tipNode() {
     var t = document.getElementById("ptTip");
     if (!t) { t = el("div", "pt-tip"); t.id = "ptTip"; document.body.appendChild(t); }
@@ -388,10 +415,13 @@
         showDetail(r, c);
       });
       dots.push({ node: d, session: r.session || "?" });
+      r._dot = d;
+      r._col = c;
     });
 
     // 指標の切り替え。点の大きさ・列の並び・順位表がまとめて変わる。
-    var boardHead = el("div", "pt-board-head", side);
+    var boardCard = el("div", "pt-sidecard", side);
+    var boardHead = el("div", "pt-board-head", boardCard);
     el("div", "pt-board-title", boardHead).textContent =
       metric ? "Where the " + (metric.label === "cost" ? "money" : "tokens") + " went" : "Where the prompts went";
     if (opts.onMetric) {
@@ -410,7 +440,7 @@
     var fmtOf = function (v) { return metric ? metric.fmt(v) : String(v); };
     var top = Math.max.apply(null, cols.map(valueOf).concat([0]));
     var sum = cols.reduce(function (a, c) { return a + valueOf(c); }, 0);
-    var board = el("ol", "pt-board", side);
+    var board = el("ol", "pt-board", boardCard);
     cols.forEach(function (c, rank) {
       var li = el("li", "pt-row", board);
       li.tabIndex = 0;
@@ -467,6 +497,8 @@
         dots.forEach(function (o) { o.node.classList.remove("active"); });
       });
       var body = el("pre", null, box);
+      // 画面下に固定したシートなので Esc でも閉じられるようにする。
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape") close.click(); });
       return { box: box, swatch: swatch, who: who, when: when, body: body };
     }
 
@@ -482,6 +514,71 @@
                   + "  ·  " + METRICS.tokens.fmt(r.tokens || 0) + " tokens" : "");
       detailParts.body.textContent = r.text || "(no body)";
       detailParts.box.classList.add("show");
+    }
+
+    // その日の「瞬間」。押すとその点まで飛んで開く。
+    drawMoments();
+
+    function focusRow(r, also) {
+      if (!r._dot) return;
+      if (hidden[r.session || "?"]) toggle(r.session || "?");
+      r._dot.scrollIntoView({ block: "center", behavior: "smooth" });
+      dots.forEach(function (o) { o.node.classList.remove("active"); });
+      r._dot.classList.add("active");
+      (also || []).forEach(function (x) {
+        if (!x._dot) return;
+        x._dot.classList.remove("pulse"); void x._dot.offsetWidth; x._dot.classList.add("pulse");
+      });
+      showDetail(r, r._col);
+    }
+
+    function drawMoments() {
+      var human = rows.filter(function (r) { return r.kind === "human"; });
+      if (!human.length) return;
+      var maxBy = function (f) {
+        return human.reduce(function (a, r) { return f(r) > (a ? f(a) : 0) ? r : a; }, null);
+      };
+      var snip = function (r) {
+        if (!r.text) return (r.chars || 0) + " characters (text not included)";
+        var t = r.text.replace(/\s+/g, " ").trim();
+        return "“" + (t.length > 84 ? t.slice(0, 84) + "…" : t) + "”";
+      };
+      var cards = [];
+      var longest = maxBy(function (r) { return r.busyMs || 0; });
+      if (longest) cards.push({ label: "Longest run", value: mmss(longest.busyMs), row: longest });
+      var pricey = maxBy(function (r) { return r.cost || 0; });
+      // 一番長く走ったのと一番高いのが同じプロンプトなら、カードを 2 枚使わず 1 枚にまとめる。
+      if (pricey && longest === pricey) {
+        cards[cards.length - 1].label = "Longest run — and the priciest";
+        cards[cards.length - 1].note = METRICS.cost.fmt(pricey.cost) + " · " + METRICS.tokens.fmt(pricey.tokens || 0) + " tokens";
+      } else if (pricey) cards.push({ label: "Priciest prompt", value: METRICS.cost.fmt(pricey.cost), row: pricey,
+                               note: METRICS.tokens.fmt(pricey.tokens || 0) + " tokens" });
+      else {
+        var heavy = maxBy(function (r) { return r.tokens || 0; });
+        if (heavy) cards.push({ label: "Most tokens", value: METRICS.tokens.fmt(heavy.tokens), row: heavy });
+      }
+      var loop = tightestLoop(human, 6, 3);
+      if (loop) cards.push({ label: "Tightest loop", value: loop.rows.length + " prompts in " + Math.max(1, Math.round(loop.minutes)) + "m",
+                             row: loop.rows[0], group: loop.rows,
+                             note: "avg " + loop.avgChars + " characters" + (loop.avgChars < 60 ? " — quick corrections?" : " — feeding in detail") });
+      var essay = maxBy(function (r) { return r.chars || 0; });
+      if (essay) cards.push({ label: "Longest prompt you wrote", value: (essay.chars || 0).toLocaleString() + " chars", row: essay });
+      if (!cards.length) return;
+
+      var box = el("div", "pt-moments", side);
+      el("div", "pt-board-title", box).textContent = "Moments of the day";
+      cards.forEach(function (m) {
+        var b = el("button", "pt-moment", box);
+        b.type = "button";
+        el("span", "pt-m-label", b).textContent = m.label;
+        el("b", "pt-m-val", b).textContent = m.value;
+        var who = el("span", "pt-m-who", b);
+        el("i", null, who).style.background = m.row._col ? m.row._col.color : "var(--sub)";
+        who.appendChild(document.createTextNode((m.row._col ? m.row._col.name : m.row.session) + " · " + m.row.time.slice(0, 5) +
+          (m.note ? " · " + m.note : "")));
+        el("span", "pt-m-text", b).textContent = snip(m.row);
+        b.addEventListener("click", function () { focusRow(m.row, m.group); });
+      });
     }
 
     // 時間帯グラフ（ページが置き場所を渡してきたときだけ）。列はセッション別の積み上げで、
@@ -560,5 +657,6 @@
   global.PromptTimeline = { mount: mount, formatDuration: mmss,
     // テスト用。描画には使わない。
     _internal: { buildColumns: buildColumns, assignColors: assignColors, METRICS: METRICS, SLOTS: SLOTS,
-                 hourly: hourly, peakConcurrency: peakConcurrency, foldAxis: foldAxis } };
+                 hourly: hourly, peakConcurrency: peakConcurrency, foldAxis: foldAxis,
+                 tightestLoop: tightestLoop } };
 })(this);

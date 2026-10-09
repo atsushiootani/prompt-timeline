@@ -3,29 +3,29 @@
   "generatedAt": "2026-09-16T19:30:00.000Z",
   "note": "Sample data. Fabricated for the demo and the screenshot - no real prompts.",
   "summary": {
-    "human_prompts": 45,
+    "human_prompts": 49,
     "slash_commands": 6,
-    "busy_ms": 20365000,
+    "busy_ms": 20753000,
     "busy_gap_cap_minutes": 30,
     "busy_ms_by_session": {
       "webapp.main": 7381000,
-      "webapp.tests": 2920000,
+      "webapp.tests": 3308000,
       "api-server.review": 4724000,
       "webapp.docs": 3338000,
       "api-server.9f2c41b7": 2002000
     },
-    "cost_usd": 163.32,
+    "cost_usd": 165.87,
     "cost_by_session": {
       "webapp.main": 49.18,
-      "webapp.tests": 48.14,
+      "webapp.tests": 50.69,
       "api-server.review": 32.04,
       "webapp.docs": 23.59,
       "api-server.9f2c41b7": 10.37
     },
-    "tokens": 242212820,
+    "tokens": 247062820,
     "tokens_by_session": {
       "webapp.main": 124075182,
-      "webapp.tests": 44930802,
+      "webapp.tests": 49780802,
       "api-server.review": 32630164,
       "webapp.docs": 27455441,
       "api-server.9f2c41b7": 13121231
@@ -33,7 +33,7 @@
     "unpriced_models": [],
     "by_session": {
       "webapp.main": 19,
-      "webapp.tests": 10,
+      "webapp.tests": 14,
       "webapp.docs": 7,
       "api-server.review": 6,
       "api-server.9f2c41b7": 3
@@ -740,6 +740,78 @@
       "busyMs": 550000,
       "tokens": 4460663,
       "cost": 4.78
+    },
+    {
+      "time": "16:35:20",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "text": "Still failing.",
+      "chars": 14,
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "16:35:20",
+          "16:36:31"
+        ]
+      ],
+      "busyMs": 71000,
+      "cost": 0.62,
+      "tokens": 1180000
+    },
+    {
+      "time": "16:37:05",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "text": "No — the rounding test, not the tax one.",
+      "chars": 40,
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "16:37:05",
+          "16:39:12"
+        ]
+      ],
+      "busyMs": 127000,
+      "cost": 0.91,
+      "tokens": 1730000
+    },
+    {
+      "time": "16:40:10",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "text": "Run just that file.",
+      "chars": 19,
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "16:40:10",
+          "16:41:02"
+        ]
+      ],
+      "busyMs": 52000,
+      "cost": 0.44,
+      "tokens": 840000
+    },
+    {
+      "time": "16:42:30",
+      "session": "webapp.tests",
+      "workspace": "webapp",
+      "agent": "tests",
+      "text": "OK, green. Commit it.",
+      "chars": 21,
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "16:42:30",
+          "16:44:48"
+        ]
+      ],
+      "busyMs": 138000,
+      "cost": 0.58,
+      "tokens": 1100000
     },
     {
       "time": "16:47:58",

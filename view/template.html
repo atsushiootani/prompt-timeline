@@ -138,7 +138,7 @@
     .map(function (key) { return key + " " + excluded[key]; })
     .join(", ");
   document.getElementById("ptFoot").textContent =
-    "Hover a dot for the prompt, click it for the full text. Click a header or a legend chip to hide that session." +
+    "Hover a dot for the prompt, click it (or a moment card) for the full text — Esc closes it. Click a session on the board or a column header to hide it." +
     (excludedText ? "  Machine-injected turns excluded: " + excludedText + "." : "") +
     (data.generatedAt ? "  Generated " + data.generatedAt : "");
 })();
