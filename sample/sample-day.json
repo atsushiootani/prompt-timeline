@@ -47,20 +47,7 @@
       "sdk_filtered": 0
     }
   },
-  "agents": {
-    "main": {
-      "color": "#3b82f6"
-    },
-    "tests": {
-      "color": "#10b981"
-    },
-    "docs": {
-      "color": "#f59e0b"
-    },
-    "review": {
-      "color": "#a855f7"
-    }
-  },
+  "agents": {},
   "human_prompts": [
     {
       "time": "09:12:46",

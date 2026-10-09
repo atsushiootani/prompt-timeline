@@ -4,12 +4,17 @@
   --bg:#faf7f4; --card:#fff; --ink:#3a2e26; --sub:#9b8c81; --line:#ece3da;
   --grid:#f0e6dc; --lane:#f4ece4; --shadow:0 2px 10px rgba(120,90,70,.08);
   --tip-bg:#3a2e26; --tip-ink:#fff;
+  /* セッション色。色覚多様性の検証を通した 8 枠で、この順番そのものが安全装置。 */
+  --pt-s1:#2a78d6; --pt-s2:#eb6834; --pt-s3:#1baf7a; --pt-s4:#eda100;
+  --pt-s5:#e87ba4; --pt-s6:#008300; --pt-s7:#4a3aa7; --pt-s8:#e34948; --pt-other:#a8a29b;
 }
 @media (prefers-color-scheme:dark){
   :root{
     --bg:#1b1714; --card:#241f1b; --ink:#f0e7de; --sub:#9c8d81; --line:#3a312a;
     --grid:#312822; --lane:#2b231e; --shadow:0 2px 12px rgba(0,0,0,.35);
     --tip-bg:#0f0c0a; --tip-ink:#f5efe9;
+    --pt-s1:#3987e5; --pt-s2:#d95926; --pt-s3:#199e70; --pt-s4:#c98500;
+    --pt-s5:#d55181; --pt-s6:#008300; --pt-s7:#9085e9; --pt-s8:#e66767; --pt-other:#6f665e;
   }
 }
 *{box-sizing:border-box}
@@ -38,7 +43,7 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-gridline{position:absolute;left:0;right:0;border-top:1px solid var(--grid)}
 .pt-gridline .pt-time{position:absolute;left:0;top:-10px;width:28px;text-align:right;
   font-size:9px;line-height:1.02;color:var(--sub)}
-.pt-lane{position:absolute;top:0;bottom:0;border-left:1px dashed var(--lane);z-index:0}
+.pt-lane{position:absolute;bottom:0;border-left:1px solid var(--grid);z-index:0}
 .pt-colhead{position:absolute;top:0;text-align:center;padding:2px 3px;overflow:hidden;cursor:pointer;
   font-size:9.5px;line-height:1.16;border-radius:7px}
 .pt-colhead:hover{background:var(--lane)}
@@ -58,6 +63,9 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-dot.slash{border-radius:3px;transform:translate(-50%,-50%) rotate(45deg)}
 .pt-dot.slash:hover,.pt-dot.slash.active{transform:translate(-50%,-50%) rotate(45deg) scale(1.4)}
 .pt-dot.hidden{display:none}
+/* 点は小さくても、押せる範囲は 24px 取る。 */
+.pt-dot::before{content:"";position:absolute;left:50%;top:50%;width:24px;height:24px;
+  transform:translate(-50%,-50%);border-radius:50%}
 .pt-empty{color:var(--sub);text-align:center;padding:40px 0;font-size:13px}
 .pt-empty-mascot{width:64px;height:64px;border-radius:16px;opacity:.85;margin:0 auto 12px;
   background:var(--pt-mascot) center/cover no-repeat}
@@ -97,7 +105,7 @@ body{margin:0;background:var(--bg);color:var(--ink);
   background:var(--pt-mascot) center/cover no-repeat}
 
 /* ---- 指標の切り替えと列ごとの合計 ---- */
-.pt-colhead .pt-total{font-size:9px;font-weight:800;margin-top:2px;letter-spacing:.02em}
+.pt-colhead .pt-total{font-size:10px;font-weight:800;margin-top:3px;color:var(--ink);letter-spacing:.02em}
 .pt-metrics{display:flex;align-items:center;gap:6px;margin:12px 0 0;font-size:11px}
 .pt-metrics-label{color:var(--sub)}
 .pt-metrics button{font:inherit;cursor:pointer;padding:3px 10px;border-radius:999px;
