@@ -389,6 +389,11 @@
       detailParts.body.textContent = r.text || "(no body)";
       detailParts.box.classList.add("show");
     }
+
+    // 見出しの一文など、ページ側が同じ色を使えるように返す。
+    var colorOf = {};
+    cols.forEach(function (c) { colorOf[c.key] = c.color; });
+    return { colorOf: colorOf };
   }
 
   global.PromptTimeline = { mount: mount, formatDuration: mmss,

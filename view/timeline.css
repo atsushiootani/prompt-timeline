@@ -29,11 +29,6 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-mascot{width:34px;height:34px;border-radius:9px;flex:none;box-shadow:0 1px 4px rgba(120,90,70,.22);
   background:var(--pt-mascot) center/cover no-repeat}
 .pt-date{font-size:14px;font-weight:700;color:var(--sub)}
-.pt-stats{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 18px}
-.pt-stat{background:var(--card);border:1px solid var(--line);border-radius:12px;
-  padding:8px 13px;box-shadow:var(--shadow);min-width:84px}
-.pt-stat b{display:block;font-size:19px;line-height:1.2}
-.pt-stat span{font-size:11px;color:var(--sub)}
 
 /* ---- plot ---- */
 .pt-panel{background:var(--card);border:1px solid var(--line);border-radius:16px;
@@ -140,3 +135,15 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-track{height:6px;margin:6px 0 0 21px;border-radius:3px;background:var(--lane);overflow:hidden}
 .pt-fill{height:100%;border-radius:0 3px 3px 0}
 .pt-row-sub{margin:5px 0 0 21px;font-size:10.5px;color:var(--sub);font-variant-numeric:tabular-nums}
+
+/* ---- hero: three figures, one sentence, one quiet line ---- */
+.pt-hero{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);
+  padding:18px 24px 16px;margin:12px 0 16px}
+.pt-figs{display:flex;flex-wrap:wrap;gap:6px 48px}
+.pt-fig b{display:block;font-size:44px;line-height:1.04;font-weight:800;letter-spacing:-.02em}
+.pt-fig span{display:block;margin-top:3px;font-size:12px;color:var(--sub)}
+.pt-lede{margin:14px 0 0;font-size:16px;line-height:1.5}
+.pt-who{display:inline-flex;align-items:center;gap:6px}
+.pt-who i{width:10px;height:10px;border-radius:50%;flex:none}
+.pt-facts{margin:5px 0 0;font-size:12px;color:var(--sub)}
+@media (max-width:600px){ .pt-fig b{font-size:32px} .pt-figs{gap:6px 28px} }
