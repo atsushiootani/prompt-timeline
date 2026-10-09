@@ -47,7 +47,11 @@ human=96 slash=1 sessions=16
 
 ```bash
 node bin/prompt-timeline.mjs build --date 2026-09-15 --out-dir ~/timelines
+node bin/prompt-timeline.mjs build --last 7       # 直近 1 週間を、日ごとにつないで
 ```
+
+同じフォルダに作った日どうしは ‹ 前 / 次 › でつながり、主役の数字の下にそのフォルダにある前の日との差が出る。
+新しい日を作ると、隣の日のページも JSON から描き直してリンクを最新にする（transcript は読み直さない）。
 
 自分のデータを触らずに試すなら:
 
@@ -83,6 +87,7 @@ prompt-timeline render  --in FILE [--out FILE]   JSON → 単体 HTML
 | `--projects-dir DIR` | transcript の置き場（既定: `~/.claude/projects`） |
 | `--tz HOURS` | 表示タイムゾーンを UTC オフセットで固定する |
 | `--busy-gap-cap MIN` | 無音がこれを超えたらビジー線を切る（既定: 30 分） |
+| `--last N` | `--date` までの N 日分をまとめて作り、日ごとにリンクする（既定: 1） |
 | `--title TEXT` | ページタイトル |
 | `--config FILE` | セッション名・色の設定（既定: あれば `config/agents.json`） |
 
