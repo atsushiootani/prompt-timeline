@@ -37,7 +37,7 @@ async function loadIcon(file) {
 }
 
 export async function render(data, options = {}) {
-  const { viewDir = DEFAULT_VIEW_DIR, iconFile = DEFAULT_ICON, title } = options;
+  const { viewDir = DEFAULT_VIEW_DIR, iconFile = DEFAULT_ICON, title, days } = options;
 
   const [template, css, js, icon] = await Promise.all([
     readFile(path.join(viewDir, "template.html"), "utf8"),
@@ -49,7 +49,8 @@ export async function render(data, options = {}) {
   const slots = {
     __TITLE__: title ?? `Prompt Timeline ${data.date ?? ""}`.trim(),
     __CSS__: css,
-    __DATA__: inlineJson(data),
+    // Neighbouring days are page context, not part of the day: inject without touching `data`.
+    __DATA__: inlineJson(days ? { ...data, days } : data),
     __JS__: js,
     __ICON__: icon,
   };

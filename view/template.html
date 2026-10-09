@@ -25,6 +25,7 @@
     <span class="pt-mascot" aria-hidden="true"></span>
     <h1>Prompt Timeline</h1>
     <div class="pt-date" id="ptDate"></div>
+    <nav class="pt-days" id="ptDays" aria-label="Other days"></nav>
   </div>
   <section class="pt-hero" id="ptHero" aria-label="The day in numbers">
     <div class="pt-hero-text">
@@ -54,13 +55,33 @@
   var fmtTok = function (v) { return v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : Math.round(v / 1e3) + "k"; };
 
   // 曜日も添える。日付は ISO より「何曜の自分か」で思い出すので。
-  if (data.date) {
-    var wd = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date(data.date + "T12:00:00Z").getUTCDay()];
-    document.getElementById("ptDate").textContent = data.date + " · " + wd;
-  }
+  var weekday = function (d) { return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date(d + "T12:00:00Z").getUTCDay()]; };
+  if (data.date) document.getElementById("ptDate").textContent = data.date + " · " + weekday(data.date);
+
+  // 同じフォルダにある前後の日へ。無い側は押せない形で残す（位置が動かないように）。
+  var days = data.days || {};
+  var nav = document.getElementById("ptDays");
+  [["prev", "‹ "], ["next", ""]].forEach(function (p) {
+    var d = days[p[0]];
+    var a = document.createElement(d ? "a" : "span");
+    a.className = "pt-day" + (d ? "" : " off");
+    if (d) { a.href = d + ".html"; a.title = d; }
+    a.textContent = d ? (p[0] === "prev" ? "‹ " + weekday(d) + " " + d.slice(8) : weekday(d) + " " + d.slice(8) + " ›")
+                      : (p[0] === "prev" ? "‹ earlier" : "later ›");
+    nav.appendChild(a);
+  });
 
   // 主役の数字は 3 つだけ。残りは下の一行に格を下げて残す（消さない）。
-  function fig(value, label) {
+  // 前の日との差。増減に良し悪しの色は付けない（使った額が増えるのは失敗とは限らない）。
+  var before = days.previous ? days.previous.summary : null;
+  var vs = days.previous ? " vs " + weekday(days.previous.date) : "";
+  function delta(cur, old, fmt) {
+    if (!before || old == null) return "";
+    var d = cur - old;
+    if (Math.abs(d) < 1e-9) return "= same as" + vs.slice(3);
+    return (d > 0 ? "▲ " : "▼ ") + fmt(Math.abs(d)) + vs;
+  }
+  function fig(value, label, diff) {
     var box = document.createElement("div");
     box.className = "pt-fig";
     var big = document.createElement("b");
@@ -69,12 +90,19 @@
     small.textContent = label;
     box.appendChild(big);
     box.appendChild(small);
+    if (diff) {
+      var dd = document.createElement("em");
+      dd.textContent = diff;
+      box.appendChild(dd);
+    }
     document.getElementById("ptFigs").appendChild(box);
   }
   var busy = summary.busy_ms ? PromptTimeline.formatDuration(summary.busy_ms) : null;
-  if (summary.cost_usd) fig(fmtUsd(summary.cost_usd), "api-equivalent spend");
-  if (busy) fig(busy, "agents busy");
-  fig(String(summary.human_prompts || 0), "prompts typed");
+  if (summary.cost_usd) fig(fmtUsd(summary.cost_usd), "api-equivalent spend",
+    delta(summary.cost_usd, before && before.cost_usd, fmtUsd));
+  if (busy) fig(busy, "agents busy", delta(summary.busy_ms, before && before.busy_ms, PromptTimeline.formatDuration));
+  fig(String(summary.human_prompts || 0), "prompts typed",
+    delta(summary.human_prompts || 0, before && before.human_prompts, String));
   if (!summary.cost_usd) fig(String(sessions), "sessions");
 
   var facts = [];

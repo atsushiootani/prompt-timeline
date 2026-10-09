@@ -47,7 +47,13 @@ Want a different day, or somewhere else to put it:
 
 ```bash
 node bin/prompt-timeline.mjs build --date 2026-09-15 --out-dir ~/timelines
+node bin/prompt-timeline.mjs build --last 7       # the past week, linked day to day
 ```
+
+Days built into the same folder link to each other (‹ prev / next ›), and each day's headline
+figures show the change against the previous day that exists there. Building a new day
+redraws its neighbours' pages so their links stay current — from their JSON, without
+re-reading transcripts.
 
 Try it without touching your own data:
 
@@ -83,6 +89,7 @@ prompt-timeline render  --in FILE [--out FILE] JSON -> a single HTML file
 | `--projects-dir DIR` | where transcripts live (default: `~/.claude/projects`) |
 | `--tz HOURS` | display against a fixed UTC offset instead of this machine's |
 | `--busy-gap-cap MINUTES` | how long a silence can get before a busy span is cut (default: 30) |
+| `--last N` | build the N days ending at `--date`, linked to each other (default: 1) |
 | `--title TEXT` | page title |
 | `--config FILE` | session names and colours (default: `config/agents.json` if present) |
 

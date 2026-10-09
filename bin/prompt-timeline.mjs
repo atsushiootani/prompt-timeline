@@ -14,6 +14,7 @@ import os from "node:os";
 import { pathToFileURL } from "node:url";
 import { collect, loadConfig, todayIn, DEFAULT_PROJECTS_DIR } from "../src/collect.mjs";
 import { render } from "../src/render.mjs";
+import { dayContext } from "../src/days.mjs";
 
 const HELP = `prompt-timeline — a timeline of the prompts you typed into Claude Code
 
@@ -32,6 +33,7 @@ Options
   --projects-dir DIR   where transcripts live (default: ~/.claude/projects)
   --tz HOURS           fixed UTC offset for display (default: this machine's setting)
   --busy-gap-cap MIN   silence that ends a busy span, in minutes (default: 30)
+  --last N             build the N days ending at --date (default: 1), linked to each other
   --no-text            drop prompt bodies (session and branch names still remain)
   --drop-sdk           also drop SDK / system-injected turns
   -h, --help           show this
@@ -39,6 +41,7 @@ Options
 Examples
   prompt-timeline build
   prompt-timeline build --date 2026-09-16 --out-dir ~/timelines
+  prompt-timeline build --last 7
   prompt-timeline collect --date 2026-09-16 --no-text --out safe.json
 `;
 
@@ -63,6 +66,7 @@ function parseArgs(argv) {
       case "--projects-dir": opts.projectsDir = takesValue(arg); break;
       case "--tz": opts.tz = Number(takesValue(arg)); break;
       case "--busy-gap-cap": opts.busyGapCap = Number(takesValue(arg)); break;
+      case "--last": opts.last = Number(takesValue(arg)); break;
       case "--no-text": opts.noText = true; break;
       case "--drop-sdk": opts.dropSdk = true; break;
       default:
@@ -124,29 +128,66 @@ async function cmdCollect(opts) {
   report(data);
 }
 
+const DAY_NAME = /^(\d{4}-\d{2}-\d{2})\.json$/;
+
+/** Render one day's JSON with links to the days next to it in the same folder. */
+async function renderFile(jsonPath, out, title) {
+  const data = JSON.parse(await readFile(jsonPath, "utf8"));
+  const day = path.basename(jsonPath).match(DAY_NAME)?.[1];
+  const days = day ? await dayContext(path.dirname(jsonPath), day) : undefined;
+  const htmlPath = out ?? jsonPath.replace(/\.json$/, "") + ".html";
+  await writeOut(htmlPath, await render(data, { title, days }));
+  return htmlPath;
+}
+
+/** `end` and the n-1 days before it, oldest first. */
+function lastDays(end, n) {
+  const base = new Date(`${end}T12:00:00Z`).getTime();
+  return Array.from({ length: n }, (_, i) => new Date(base - (n - 1 - i) * 86400000).toISOString().slice(0, 10));
+}
+
 async function cmdRender(opts) {
   if (!opts.in) throw new Error("render needs --in FILE");
-  const data = JSON.parse(await readFile(opts.in, "utf8"));
-  const out = opts.out ?? `${opts.in.replace(/\.json$/, "")}.html`;
-  await writeOut(out, await render(data, { title: opts.title }));
+  const out = await renderFile(opts.in, opts.out, opts.title);
   console.log(`saved: ${out}`);
   console.log(`open:  ${pathToFileURL(path.resolve(out)).href}`);
 }
 
 async function cmdBuild(opts) {
-  const data = await runCollect(opts);
-  const dir = expandHome(opts.outDir) ?? "out";
-  const day = data.date ?? todayIn(opts.tz ?? null);
-  const jsonPath = opts.out ?? path.join(dir, `${day}.json`);
-  const htmlPath = jsonPath.replace(/\.json$/, "") + ".html";
+  const n = opts.last ?? 1;
+  if (!Number.isInteger(n) || n < 1 || n > 366) throw new Error("--last must be a whole number of days, e.g. --last 7");
+  if (opts.out && n > 1) throw new Error("--out names one file; use --out-dir with --last");
 
-  await writeOut(jsonPath, `${JSON.stringify(data, null, 2)}\n`);
-  await writeOut(htmlPath, await render(data, { title: opts.title }));
+  const dir = opts.out ? path.dirname(opts.out) : expandHome(opts.outDir) ?? "out";
+  const end = opts.date ?? todayIn(opts.tz ?? null);
+  const dates = lastDays(end, n);
 
-  console.log(`saved: ${jsonPath}`);
-  console.log(`saved: ${htmlPath}`);
-  console.log(`open:  ${pathToFileURL(path.resolve(htmlPath)).href}`);
-  report(data);
+  // Write every day's JSON first, so each page can link to all of its neighbours.
+  const written = [];
+  for (const date of dates) {
+    const data = await runCollect({ ...opts, date });
+    const jsonPath = opts.out ?? path.join(dir, `${date}.json`);
+    await writeOut(jsonPath, `${JSON.stringify(data, null, 2)}\n`);
+    if (n > 1) process.stdout.write(`${date}  `);
+    report(data);
+    written.push(jsonPath);
+  }
+
+  let last = null;
+  for (const jsonPath of written) last = await renderFile(jsonPath, null, opts.title);
+
+  // The days on either side existed before this build and still point past us; redraw them
+  // from their own JSON (no transcripts are read) so their prev / next links are current.
+  const firstDay = path.basename(written[0]).match(DAY_NAME)?.[1];
+  const lastDay = path.basename(written[written.length - 1]).match(DAY_NAME)?.[1];
+  const edges = [];
+  if (firstDay) edges.push((await dayContext(dir, firstDay)).prev);
+  if (lastDay) edges.push((await dayContext(dir, lastDay)).next);
+  for (const d of edges.filter(Boolean)) await renderFile(path.join(dir, `${d}.json`), null, opts.title);
+
+  if (n === 1) console.log(`saved: ${written[0]}`);
+  console.log(`saved: ${last}${n > 1 ? `  (+${n - 1} more)` : ""}`);
+  console.log(`open:  ${pathToFileURL(path.resolve(last)).href}`);
 }
 
 async function main(argv) {
