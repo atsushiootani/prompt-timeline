@@ -1,19 +1,33 @@
 # prompt-timeline
 
-See a day of your own Claude Code work as a timeline: **time runs down, sessions run across.**
-One dot is one prompt you typed, and the line under it is how long the agent stayed busy
-answering. Hover a dot to read the prompt, click it for the full text.
+See a day of your own Claude Code work on one page: **time runs down, sessions run across.**
+Point it at the transcripts Claude Code already keeps on your machine and it answers, in the
+order you read it:
+
+- **How much, how long, how many** — API-equivalent spend, agent busy time and prompts,
+  each against the previous day.
+- **When** — an hour-by-hour chart stacked by session, the busiest hour, and the most
+  agents you had running at once.
+- **Who** — sessions ranked by cost, tokens or prompts, with each one's whole day beside it.
+- **What happened** — every prompt as a dot sized by what it cost, with a line for how long
+  the agent stayed on it. Hours where nothing ran fold into a thin band.
+- **Moments** — the longest run, the priciest prompt, the longest prompt you wrote, and the
+  tightest loop: three or more quick prompts in a row, usually where you were correcting it.
 
 [日本語版 README](README.ja.md)
 
-![The timeline, with a prompt shown on hover](docs/screenshot.png)
+![The first screen: spend, busy time and prompts, the day hour by hour, the session board and the timeline](docs/screenshot.png)
 
-A column thick with line is a session that ran all day; a bare one is a session you only
-poked. Clicking a dot opens the whole prompt underneath, with the branch and the time it took:
+Click a moment or a dot and the prompt opens at the bottom of the screen; a loop's dots pulse
+so you can see them together:
 
-![Clicking a dot opens the full prompt](docs/screenshot-detail.png)
+![A tightest-loop card opening its first prompt](docs/screenshot-detail.png)
 
-> Both screenshots are the real tool rendering [`sample/sample-day.json`](sample/sample-day.json),
+Colours are checked for colour-blind separation, and dark mode has its own:
+
+![Dark mode](docs/screenshot-dark.png)
+
+> All three screenshots are the real tool rendering [`sample/sample-day.json`](sample/sample-day.json),
 > which is fabricated data — nobody's actual prompts.
 
 ## What it reads
