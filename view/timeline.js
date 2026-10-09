@@ -11,10 +11,10 @@
 (function (global) {
   "use strict";
 
-  // Used when the config does not name a colour. Even in saturation so neighbours stay distinct.
-  var FALLBACK = ["#3b82f6", "#ff6f93", "#10b981", "#a855f7", "#f59e0b",
-                  "#06b6d4", "#ef4444", "#14b8a6", "#ec4899", "#0ea5e9",
-                  "#84cc16", "#f97316", "#8b5cf6", "#22d3ee", "#e11d48"];
+  // Used when the config does not name a colour. Eight slots, validated for colour-blind
+  // separation in this order; the light and dark steps live in timeline.css as --pt-s1..8.
+  // The hexes here are the light steps, only so a config colour can be matched against them.
+  var SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"];
 
   var GUTTER  = 32,   // width of the time labels
       COLW_MIN = 62,  // narrowest a session column gets
@@ -96,11 +96,24 @@
                  (b.n + b.slash) - (a.n + a.slash) ||
                  String(a.name).localeCompare(String(b.name));
         });
-    cols.forEach(function (c, i) {
-      if (!c.color) c.color = FALLBACK[i % FALLBACK.length];
-      index[c.key] = i;
-    });
+    cols.forEach(function (c, i) { index[c.key] = i; });
     return { cols: cols, index: index };
+  }
+
+  /* 色はセッションに付け、並び順には付けない。cost/tokens を切り替えて列が入れ替わっても
+     同じセッションは同じ色のまま。順番は「その日に初めて現れた順」で固定する。
+     設定ファイルが使っている色の枠は飛ばすので、2 つのセッションが同じ色になることはない。 */
+  function assignColors(cols, firstSeen) {
+    var taken = {};
+    cols.forEach(function (c) { if (c.color) taken[String(c.color).toLowerCase()] = true; });
+    var free = [];
+    SLOTS.forEach(function (hex, i) { if (!taken[hex]) free.push("var(--pt-s" + (i + 1) + ")"); });
+    var order = cols.filter(function (c) { return !c.color; })
+      .sort(function (a, b) { return firstSeen[a.key].localeCompare(firstSeen[b.key]) || a.key.localeCompare(b.key); });
+    order.forEach(function (c, i) {
+      // 9 本目以降は色を作らない。灰色に落として、見出しの名前で区別させる。
+      c.color = i < free.length ? free[i] : "var(--pt-other)";
+    });
   }
 
   function tipNode() {
@@ -140,6 +153,9 @@
     }
 
     var built = buildColumns(rows, agents, metric), cols = built.cols, colOf = built.index;
+    var firstSeen = {};
+    rows.forEach(function (r) { var k = r.session || "?"; if (!(k in firstSeen)) firstSeen[k] = r.time; });
+    assignColors(cols, firstSeen);
     var head = metric ? HEAD + 12 : HEAD;   // 合計の行が 1 本増えるぶん
 
     // 点の大きさは指標の平方根に比例させる。面積が値に比例して見えるのはこちら。
@@ -194,21 +210,19 @@
       lane.style.left = (x + COLW / 2) + "px";
       lane.style.top = head + "px";
 
-      var head = el("div", "pt-colhead", plot);
-      head.style.left = x + "px";
-      head.style.width = COLW + "px";
-      head.title = c.key + " - " + c.n + " prompts" + (c.slash ? ", " + c.slash + " commands" : "") +
+      // `head` は外側の見出しの高さ。ここで同名の var を切ると巻き上げで undefined に化ける。
+      var hd = el("div", "pt-colhead", plot);
+      hd.style.left = x + "px";
+      hd.style.width = COLW + "px";
+      hd.title = c.key + " - " + c.n + " prompts" + (c.slash ? ", " + c.slash + " commands" : "") +
         (metric ? " - " + metric.fmt(c.total) + " " + metric.label : "");
-      el("div", "pt-ws", head).textContent = c.ws || "";
-      el("div", "pt-nm", head).textContent = c.name;
-      el("div", "pt-bar", head).style.background = c.color;
-      if (metric) {
-        var tot = el("div", "pt-total", head);
-        tot.textContent = metric.fmt(c.total);
-        tot.style.color = c.color;
-      }
-      head.addEventListener("click", function () { toggle(c.key); });
-      c.headNode = head;
+      el("div", "pt-ws", hd).textContent = c.ws || "";
+      el("div", "pt-nm", hd).textContent = c.name;
+      el("div", "pt-bar", hd).style.background = c.color;
+      // 数字は文字色で書く。色は隣のバーが受け持つ。
+      if (metric) el("div", "pt-total", hd).textContent = metric.fmt(c.total);
+      hd.addEventListener("click", function () { toggle(c.key); });
+      c.headNode = hd;
     });
 
     // ビジー線。エージェントが応答を抱えていた時間を、そのセッションの色で縦に引く。
@@ -343,5 +357,7 @@
     }
   }
 
-  global.PromptTimeline = { mount: mount, formatDuration: mmss };
+  global.PromptTimeline = { mount: mount, formatDuration: mmss,
+    // テスト用。描画には使わない。
+    _internal: { buildColumns: buildColumns, assignColors: assignColors, METRICS: METRICS, SLOTS: SLOTS } };
 })(this);
