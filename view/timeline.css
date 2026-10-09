@@ -167,3 +167,8 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-tip .pt-tip-row{display:flex;align-items:center;gap:7px}
 .pt-tip .pt-tip-row i{width:8px;height:8px;border-radius:50%;flex:none}
 .pt-tip .pt-tip-row b{margin-left:auto;padding-left:14px}
+
+/* 畳んだ空白。罫線ではなく「ここに時間が隠れている」帯として、レーンの上に敷く。 */
+.pt-fold{position:absolute;right:0;z-index:1;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);border-top:1px solid var(--grid);border-bottom:1px solid var(--grid);
+  font-size:10.5px;color:var(--sub);letter-spacing:.02em}

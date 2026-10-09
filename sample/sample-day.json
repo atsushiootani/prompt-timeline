@@ -3,39 +3,39 @@
   "generatedAt": "2026-09-16T19:30:00.000Z",
   "note": "Sample data. Fabricated for the demo and the screenshot - no real prompts.",
   "summary": {
-    "human_prompts": 42,
+    "human_prompts": 45,
     "slash_commands": 6,
-    "busy_ms": 18940000,
+    "busy_ms": 20365000,
     "busy_gap_cap_minutes": 30,
     "busy_ms_by_session": {
-      "webapp.main": 7051000,
+      "webapp.main": 7381000,
       "webapp.tests": 2920000,
       "api-server.review": 4724000,
-      "webapp.docs": 2243000,
+      "webapp.docs": 3338000,
       "api-server.9f2c41b7": 2002000
     },
-    "cost_usd": 159.05,
+    "cost_usd": 163.32,
     "cost_by_session": {
-      "webapp.main": 48.06,
+      "webapp.main": 49.18,
       "webapp.tests": 48.14,
       "api-server.review": 32.04,
-      "webapp.docs": 20.44,
+      "webapp.docs": 23.59,
       "api-server.9f2c41b7": 10.37
     },
-    "tokens": 234042820,
+    "tokens": 242212820,
     "tokens_by_session": {
-      "webapp.main": 121935182,
+      "webapp.main": 124075182,
       "webapp.tests": 44930802,
       "api-server.review": 32630164,
-      "webapp.docs": 21425441,
+      "webapp.docs": 27455441,
       "api-server.9f2c41b7": 13121231
     },
     "unpriced_models": [],
     "by_session": {
-      "webapp.main": 18,
+      "webapp.main": 19,
       "webapp.tests": 10,
+      "webapp.docs": 7,
       "api-server.review": 6,
-      "webapp.docs": 5,
       "api-server.9f2c41b7": 3
     },
     "excluded": {
@@ -49,6 +49,24 @@
   },
   "agents": {},
   "human_prompts": [
+    {
+      "time": "06:48:10",
+      "session": "webapp.main",
+      "workspace": "webapp",
+      "agent": "main",
+      "text": "Before standup: summarise what changed on feat/checkout-flow since yesterday, in five bullets.",
+      "chars": 94,
+      "branch": "feat/checkout-flow",
+      "spans": [
+        [
+          "06:48:10",
+          "06:53:40"
+        ]
+      ],
+      "busyMs": 330000,
+      "cost": 1.12,
+      "tokens": 2140000
+    },
     {
       "time": "09:12:46",
       "session": "webapp.main",
@@ -820,6 +838,42 @@
       "busyMs": 269000,
       "tokens": 11560715,
       "cost": 4.56
+    },
+    {
+      "time": "22:04:30",
+      "session": "webapp.docs",
+      "workspace": "webapp",
+      "agent": "docs",
+      "text": "Proofread docs/checkout.md one more time and fix only typos.",
+      "chars": 60,
+      "branch": "docs/checkout",
+      "spans": [
+        [
+          "22:04:30",
+          "22:09:00"
+        ]
+      ],
+      "busyMs": 270000,
+      "cost": 0.84,
+      "tokens": 1610000
+    },
+    {
+      "time": "22:18:05",
+      "session": "webapp.docs",
+      "workspace": "webapp",
+      "agent": "docs",
+      "text": "Also add the new discount rules to the FAQ section. Keep it under ten lines.",
+      "chars": 76,
+      "branch": "docs/checkout",
+      "spans": [
+        [
+          "22:18:05",
+          "22:31:50"
+        ]
+      ],
+      "busyMs": 825000,
+      "cost": 2.31,
+      "tokens": 4420000
     }
   ],
   "slash_commands": [
