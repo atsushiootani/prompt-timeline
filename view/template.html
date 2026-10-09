@@ -26,7 +26,11 @@
     <h1>Prompt Timeline</h1>
     <div class="pt-date" id="ptDate"></div>
   </div>
-  <div class="pt-stats" id="ptStats"></div>
+  <section class="pt-hero" id="ptHero" aria-label="The day in numbers">
+    <div class="pt-figs" id="ptFigs"></div>
+    <p class="pt-lede" id="ptLede"></p>
+    <p class="pt-facts" id="ptFacts"></p>
+  </section>
   <div id="ptTimeline"></div>
   <div class="pt-foot">
     <span class="pt-mark" aria-hidden="true"></span>
@@ -41,46 +45,79 @@
   var summary = data.summary || {};
   document.getElementById("ptDate").textContent = data.date || "";
 
-  function stat(host, value, label) {
+  var rows = data.human_prompts || [];
+  var sessions = Object.keys(summary.by_session || {}).length;
+  var fmtUsd = function (v) { return "$" + v.toFixed(2); };
+  var fmtTok = function (v) { return v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : Math.round(v / 1e3) + "k"; };
+
+  // 曜日も添える。日付は ISO より「何曜の自分か」で思い出すので。
+  if (data.date) {
+    var wd = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date(data.date + "T12:00:00Z").getUTCDay()];
+    document.getElementById("ptDate").textContent = data.date + " · " + wd;
+  }
+
+  // 主役の数字は 3 つだけ。残りは下の一行に格を下げて残す（消さない）。
+  function fig(value, label) {
     var box = document.createElement("div");
-    box.className = "pt-stat";
+    box.className = "pt-fig";
     var big = document.createElement("b");
     big.textContent = value;
     var small = document.createElement("span");
     small.textContent = label;
     box.appendChild(big);
     box.appendChild(small);
-    host.appendChild(box);
+    document.getElementById("ptFigs").appendChild(box);
   }
+  var busy = summary.busy_ms ? PromptTimeline.formatDuration(summary.busy_ms) : null;
+  if (summary.cost_usd) fig(fmtUsd(summary.cost_usd), "api-equivalent spend");
+  if (busy) fig(busy, "agents busy");
+  fig(String(summary.human_prompts || 0), "prompts typed");
+  if (!summary.cost_usd) fig(String(sessions), "sessions");
 
-  var stats = document.getElementById("ptStats");
-  var rows = data.human_prompts || [];
-  stat(stats, summary.human_prompts != null ? summary.human_prompts : 0, "prompts typed");
-  stat(stats, summary.slash_commands != null ? summary.slash_commands : 0, "slash commands");
-  stat(stats, Object.keys(summary.by_session || {}).length, "sessions");
+  var facts = [];
+  if (summary.tokens) facts.push(fmtTok(summary.tokens) + " tokens");
+  facts.push(sessions + " sessions");
+  facts.push((summary.slash_commands || 0) + " slash commands");
   if (rows.length) {
-    stat(stats, rows[0].time.slice(0, 5) + " - " + rows[rows.length - 1].time.slice(0, 5), "first to last");
     var chars = rows.reduce(function (sum, r) { return sum + (r.chars || (r.text || "").length); }, 0);
-    stat(stats, Math.round(chars / rows.length), "avg characters");
+    facts.push(Math.round(chars / rows.length) + " characters per prompt");
   }
-  if (summary.busy_ms) {
-    stat(stats, PromptTimeline.formatDuration(summary.busy_ms), "agent busy");
-  }
-  if (summary.cost_usd) {
-    stat(stats, "$" + summary.cost_usd.toFixed(2), "api-equivalent");
-    stat(stats, (summary.tokens / 1e6).toFixed(1) + "M", "tokens");
-    var top = Object.entries(summary.cost_by_session || {}).sort(function (a, b) { return b[1] - a[1]; })[0];
-    if (top) stat(stats, "$" + top[1].toFixed(2), "priciest: " + top[0].split(".").pop());
-  }
+  document.getElementById("ptFacts").textContent = facts.join("  ·  ");
 
   var host = document.getElementById("ptTimeline");
   // Sizing dots by cost is the point of the page when there is cost to show.
   var metric = summary.cost_usd ? "cost" : "none";
+  var lede = document.getElementById("ptLede");
   function draw() {
-    PromptTimeline.mount(host, data, {
+    var drawn = PromptTimeline.mount(host, data, {
       metric: metric,
       onMetric: function (next) { metric = next; draw(); },
     });
+    writeLede(drawn && drawn.colorOf || {});
+  }
+
+  // その日を一文で言い切る。何本・いつからいつまで・誰が一番使ったか。
+  function writeLede(colorOf) {
+    lede.textContent = "";
+    if (!rows.length) return;
+    var span = rows[0].time.slice(0, 5) + " to " + rows[rows.length - 1].time.slice(0, 5);
+    var by = summary.cost_usd ? summary.cost_by_session : summary.busy_ms ? summary.busy_ms_by_session : summary.by_session;
+    var total = summary.cost_usd || summary.busy_ms || summary.human_prompts || 0;
+    var top = Object.entries(by || {}).sort(function (a, b) { return b[1] - a[1]; })[0];
+    lede.appendChild(document.createTextNode(sessions + " session" + (sessions === 1 ? "" : "s") + " ran from " + span + ". "));
+    if (!top) return;
+    var who = document.createElement("span");
+    who.className = "pt-who";
+    var sw = document.createElement("i");
+    sw.style.background = colorOf[top[0]] || "var(--sub)";
+    who.appendChild(sw);
+    var name = document.createElement("b");
+    name.textContent = top[0].split(".").slice(1).join(".") || top[0];
+    who.appendChild(name);
+    lede.appendChild(who);
+    var amount = summary.cost_usd ? fmtUsd(top[1]) : summary.busy_ms ? PromptTimeline.formatDuration(top[1]) : top[1] + " prompts";
+    var verb = summary.cost_usd ? " spent the most" : summary.busy_ms ? " kept its agent busiest" : " took the most prompts";
+    lede.appendChild(document.createTextNode(verb + " — " + amount + ", " + Math.round(top[1] / (total || 1) * 100) + "% of the day."));
   }
   draw();
 
