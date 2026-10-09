@@ -147,3 +147,23 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pt-who i{width:10px;height:10px;border-radius:50%;flex:none}
 .pt-facts{margin:5px 0 0;font-size:12px;color:var(--sub)}
 @media (max-width:600px){ .pt-fig b{font-size:32px} .pt-figs{gap:6px 28px} }
+
+/* ---- hour by hour, inside the hero ---- */
+.pt-hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px 36px;align-items:end}
+@media (max-width:900px){ .pt-hero{grid-template-columns:minmax(0,1fr)} }
+.pt-hours-cap{display:flex;flex-wrap:wrap;gap:2px 16px;font-size:12px;color:var(--sub);margin-bottom:8px}
+.pt-hours-cap b{color:var(--ink)}
+.pt-hours-plot{position:relative;border-bottom:1px solid var(--line);padding-top:14px}
+.pt-hours-max{position:absolute;top:0;left:0;font-size:10px;color:var(--sub);font-variant-numeric:tabular-nums}
+.pt-hours-cols{display:flex;align-items:flex-end;gap:4px;height:112px}
+.pt-hcol{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;
+  position:relative;cursor:default}
+.pt-hcol:hover .pt-hstack{filter:brightness(1.08)}
+.pt-hstack{display:flex;flex-direction:column-reverse;gap:2px;border-radius:4px 4px 0 0;overflow:hidden}
+.pt-hseg{flex-basis:0;min-height:0}
+.pt-hlab{position:absolute;bottom:-17px;left:0;right:0;text-align:center;font-size:10px;color:var(--sub);
+  font-variant-numeric:tabular-nums}
+.pt-hours{padding-bottom:16px}
+.pt-tip .pt-tip-row{display:flex;align-items:center;gap:7px}
+.pt-tip .pt-tip-row i{width:8px;height:8px;border-radius:50%;flex:none}
+.pt-tip .pt-tip-row b{margin-left:auto;padding-left:14px}

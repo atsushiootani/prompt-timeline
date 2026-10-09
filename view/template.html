@@ -27,9 +27,12 @@
     <div class="pt-date" id="ptDate"></div>
   </div>
   <section class="pt-hero" id="ptHero" aria-label="The day in numbers">
-    <div class="pt-figs" id="ptFigs"></div>
-    <p class="pt-lede" id="ptLede"></p>
-    <p class="pt-facts" id="ptFacts"></p>
+    <div class="pt-hero-text">
+      <div class="pt-figs" id="ptFigs"></div>
+      <p class="pt-lede" id="ptLede"></p>
+      <p class="pt-facts" id="ptFacts"></p>
+    </div>
+    <div class="pt-hours" id="ptHours" aria-label="Hour by hour"></div>
   </section>
   <div id="ptTimeline"></div>
   <div class="pt-foot">
@@ -92,6 +95,7 @@
     var drawn = PromptTimeline.mount(host, data, {
       metric: metric,
       onMetric: function (next) { metric = next; draw(); },
+      hourlyHost: document.getElementById("ptHours"),
     });
     writeLede(drawn && drawn.colorOf || {});
   }
@@ -117,7 +121,7 @@
     lede.appendChild(who);
     var amount = summary.cost_usd ? fmtUsd(top[1]) : summary.busy_ms ? PromptTimeline.formatDuration(top[1]) : top[1] + " prompts";
     var verb = summary.cost_usd ? " spent the most" : summary.busy_ms ? " kept its agent busiest" : " took the most prompts";
-    lede.appendChild(document.createTextNode(verb + " — " + amount + ", " + Math.round(top[1] / (total || 1) * 100) + "% of the day."));
+    lede.appendChild(document.createTextNode(verb + " — " + amount + " (" + Math.round(top[1] / (total || 1) * 100) + "%)."));
   }
   draw();
 
