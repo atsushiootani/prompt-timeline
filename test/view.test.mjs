@@ -87,3 +87,27 @@ test("an hour the agent was busy in is never folded away", () => {
   const segs = foldAxis([{ time: "10:50:00", spans: [["10:50:00", "13:10:00"]] }], 10, 14, 2);
   assert.ok(segs.every((s) => !s.fold));
 });
+
+const { tightestLoop } = sandbox.PromptTimeline._internal;
+
+test("the tightest loop is the longest quick run within one session", () => {
+  const p = (session, time, text) => ({ session, time, text, chars: text.length });
+  const rows = [
+    // a 3-run in `a`, spaced 5 min
+    p("a", "10:00:00", "add tests"), p("a", "10:05:00", "no, the other file"), p("a", "10:10:00", "still red"),
+    // a 4-run in `b`, but the 7-minute gap breaks it into 2 + 2
+    p("b", "11:00:00", "x"), p("b", "11:01:00", "y"), p("b", "11:08:00", "z"), p("b", "11:09:00", "w"),
+    // the same prompts across two sessions are not one loop
+    p("c", "12:00:00", "one"), p("d", "12:01:00", "two"), p("c", "12:02:00", "three"),
+  ];
+  const loop = tightestLoop(rows, 6, 3);
+  assert.equal(loop.session, "a");
+  assert.equal(loop.rows.length, 3);
+  assert.equal(loop.minutes, 10);
+  assert.equal(loop.avgChars, Math.round(("add tests".length + "no, the other file".length + "still red".length) / 3));
+});
+
+test("no loop is reported when nothing repeats quickly enough", () => {
+  const rows = [{ session: "a", time: "10:00:00" }, { session: "a", time: "10:30:00" }, { session: "a", time: "11:00:00" }];
+  assert.equal(tightestLoop(rows, 6, 3), null);
+});
