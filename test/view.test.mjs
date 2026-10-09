@@ -127,3 +127,14 @@ test("past eight, grey goes to the least active sessions, not the latest to appe
   assert.equal(grey.length, 2);
   assert.ok(grey.every((k) => ["a", "b", "c"].includes(k)), `greyed ${grey}`);
 });
+
+test("what you wrote is measured without the tags a dashboard prepends", () => {
+  const { ownLength } = sandbox.PromptTimeline._internal;
+  const typed = "Ship it.";
+  const injected = "<dashboard-state>\ntab: Ideas\n</dashboard-state>\n\n" + typed;
+  assert.equal(ownLength({ text: injected, chars: injected.length }), typed.length);
+  // Without text (--no-text) the recorded count is all there is.
+  assert.equal(ownLength({ chars: 42 }), 42);
+  // A prompt that is nothing but a tag is kept whole rather than measured as empty.
+  assert.equal(ownLength({ text: "<note>hi</note>" }), "<note>hi</note>".length);
+});

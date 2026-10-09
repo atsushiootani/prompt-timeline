@@ -34,6 +34,16 @@
     return (p[0] || 0) * 60 + (p[1] || 0) + (p[2] || 0) / 60;
   }
 
+  // 先頭の <tag>…</tag> の塊は、ダッシュボードやフックが差し込んだ文脈で、本人が書いた文ではない。
+  var LEADING_TAGS = /^(\s*<([A-Za-z][\w-]*)[^>]*>[\s\S]*?<\/\2>\s*)+/;
+  function ownText(r) {
+    if (!r.text) return null;
+    var body = r.text.replace(LEADING_TAGS, "").trim();
+    return body || r.text;
+  }
+  // 本人が書いた長さ。本文が無い（--no-text）ときは記録された文字数で代える。
+  function ownLength(r) { var t = ownText(r); return t == null ? (r.chars || 0) : t.length; }
+
   // 表示できる指標。cost は API 換算、tokens は transcript にある生の数。
   var METRICS = {
     cost:   { label: "cost",   of: function (r) { return r.cost || 0; },
@@ -208,7 +218,7 @@
         if (run.length < minLen) return;
         var dur = toMinutes(run[run.length - 1].time) - toMinutes(run[0].time);
         if (!best || run.length > best.rows.length || (run.length === best.rows.length && dur < best.minutes)) {
-          var chars = run.reduce(function (a, r) { return a + (r.chars || (r.text || "").length); }, 0);
+          var chars = run.reduce(function (a, r) { return a + ownLength(r); }, 0);
           best = { session: key, rows: run.slice(), minutes: dur, avgChars: Math.round(chars / run.length) };
         }
       }
@@ -545,10 +555,8 @@
       };
       var snip = function (r) {
         if (!r.text) return (r.chars || 0) + " characters (text not included)";
-        // 先頭の <tag>…</tag> の塊（ダッシュボードやフックが差し込む文脈）は抜粋では飛ばす。
-        // 全文のシートでは一切いじらない。
-        var body = r.text.replace(/^(\s*<([A-Za-z][\w-]*)[^>]*>[\s\S]*?<\/\2>\s*)+/, "");
-        var t = (body.trim() || r.text).replace(/\s+/g, " ").trim();
+        // 抜粋は本人が書いた部分から。全文のシートでは一切いじらない。
+        var t = ownText(r).replace(/\s+/g, " ").trim();
         return "“" + (t.length > 84 ? t.slice(0, 84) + "…" : t) + "”";
       };
       var cards = [];
@@ -572,8 +580,8 @@
       if (loop) put({ label: "Tightest loop", value: loop.rows.length + " prompts in " + Math.max(1, Math.round(loop.minutes)) + "m",
                              row: loop.rows[0], group: loop.rows,
                              note: "avg " + loop.avgChars + " characters" + (loop.avgChars < 60 ? " — quick corrections?" : " — feeding in detail") });
-      var essay = maxBy(function (r) { return r.chars || 0; });
-      if (essay) put({ label: "Longest prompt you wrote", value: (essay.chars || 0).toLocaleString() + " chars", row: essay });
+      var essay = maxBy(ownLength);
+      if (essay) put({ label: "Longest prompt you wrote", value: ownLength(essay).toLocaleString() + " chars", row: essay });
       if (!cards.length) return;
 
       var box = el("div", "pt-moments", side);
@@ -669,5 +677,5 @@
     // テスト用。描画には使わない。
     _internal: { buildColumns: buildColumns, assignColors: assignColors, METRICS: METRICS, SLOTS: SLOTS,
                  hourly: hourly, peakConcurrency: peakConcurrency, foldAxis: foldAxis,
-                 tightestLoop: tightestLoop } };
+                 tightestLoop: tightestLoop, ownLength: ownLength } };
 })(this);
