@@ -18,7 +18,7 @@
 
   var GUTTER  = 32,   // width of the time labels
       COLW_MIN = 62,  // narrowest a session column gets
-      COLW_MAX = 150, // widest, so a couple of sessions don't sprawl
+      COLW_MAX = 230, // widest, so a couple of sessions don't sprawl
       HEAD    = 52,   // height of the column headers (grows when a total is shown)
       PAD     = 14,   // breathing room at the top and bottom of the plot
       HOURPX  = 96;   // pixels per hour. Busy spans are read as length, so they need the room.
@@ -81,11 +81,15 @@
         var parts = splitSession(r);
         index[key] = cols.length;
         cols.push({ key: key, ws: parts.ws, name: parts.name, n: 0, slash: 0, total: 0,
+                    cost: 0, tokens: 0, busy: 0,
                     color: (agents && agents[parts.name] && agents[parts.name].color) || null });
       }
       var c = cols[index[key]];
       if (r.kind === "slash") c.slash++; else c.n++;
       if (metric) c.total += metric.of(r);
+      c.cost += r.cost || 0;
+      c.tokens += r.tokens || 0;
+      c.busy += r.busyMs || 0;
     });
     // 指標を選んでいるときは、食っている順に左から並べる。答えが一番左に来る。
     // 選んでいなければ従来どおり ワークスペース → 件数 → 名前。
@@ -178,14 +182,20 @@
     if (hi - lo < 60) hi = lo + 60;
 
     var plotH = Math.max(240, (hi - lo) / 60 * HOURPX);
+
+    // 左にセッションの順位表、右にタイムライン。表は凡例を兼ねる。
+    var grid = el("div", "pt-grid", host);
+    var side = el("aside", "pt-side", grid);
+    var main = el("div", "pt-main", grid);
+
     // Spread the columns across whatever width we were given, within reason.
-    var avail = Math.max(0, (host.clientWidth || 0) - 34);
+    var avail = Math.max(0, (main.clientWidth || host.clientWidth || 0) - 30);
     var COLW = Math.max(COLW_MIN, Math.min(COLW_MAX,
                  cols.length ? Math.floor((avail - GUTTER) / cols.length) : COLW_MIN));
     var width = GUTTER + cols.length * COLW;
     var yOf = function (m) { return head + PAD + (m - lo) / (hi - lo) * (plotH - 2 * PAD); };
 
-    var panel = el("div", "pt-panel", host);
+    var panel = el("div", "pt-panel", main);
     var scroll = el("div", "pt-scroll", panel);
     var plot = el("div", "pt-plot", scroll);
     plot.style.width = width + "px";
@@ -286,11 +296,13 @@
       dots.push({ node: d, session: r.session || "?" });
     });
 
-    // 指標の切り替え。点の大きさと列の並びが変わる。
+    // 指標の切り替え。点の大きさ・列の並び・順位表がまとめて変わる。
+    var boardHead = el("div", "pt-board-head", side);
+    el("div", "pt-board-title", boardHead).textContent =
+      metric ? "Where the " + (metric.label === "cost" ? "money" : "tokens") + " went" : "Where the prompts went";
     if (opts.onMetric) {
-      var picker = el("div", "pt-metrics", host);
-      el("span", "pt-metrics-label", picker).textContent = "size by";
-      [["none", "count"], ["cost", "cost"], ["tokens", "tokens"]].forEach(function (pair) {
+      var picker = el("div", "pt-metrics", boardHead);
+      [["none", "prompts"], ["cost", "cost"], ["tokens", "tokens"]].forEach(function (pair) {
         var b = el("button", opts.metric === pair[0] || (!metric && pair[0] === "none") ? "on" : null, picker);
         b.type = "button";
         b.textContent = pair[1];
@@ -298,18 +310,40 @@
       });
     }
 
-    // 凡例（押すとそのセッションだけ隠す / 戻す）
-    var legend = el("div", "pt-legend", host);
-    cols.forEach(function (c) {
-      var b = el("button", null, legend);
-      b.type = "button";
-      el("span", "pt-swatch", b).style.background = c.color;
-      var nm = el("span", null, b);
-      nm.textContent = c.name;
-      var n = el("span", "pt-n", b);
-      n.textContent = String(c.n + c.slash);
-      b.addEventListener("click", function () { toggle(c.key); });
-      c.legendNode = b;
+    // 順位表。各セッションの件数・稼働・金額・トークンを並べて比べられる（表としても読める）。
+    // 押すとそのセッションを隠す / 戻す。並びはタイムラインの列と同じ。
+    var valueOf = function (c) { return metric ? c.total : c.n + c.slash; };
+    var fmtOf = function (v) { return metric ? metric.fmt(v) : String(v); };
+    var top = Math.max.apply(null, cols.map(valueOf).concat([0]));
+    var sum = cols.reduce(function (a, c) { return a + valueOf(c); }, 0);
+    var board = el("ol", "pt-board", side);
+    cols.forEach(function (c, rank) {
+      var li = el("li", "pt-row", board);
+      li.tabIndex = 0;
+      li.title = "Click to hide or show " + c.key;
+      var line = el("div", "pt-row-top", li);
+      el("span", "pt-rank", line).textContent = String(rank + 1);
+      el("span", "pt-swatch", line).style.background = c.color;
+      var who = el("span", "pt-row-name", line);
+      el("b", null, who).textContent = c.name;
+      if (c.ws) el("small", null, who).textContent = c.ws;
+      var val = el("span", "pt-row-val", line);
+      val.textContent = fmtOf(valueOf(c));
+      if (sum) el("small", null, val).textContent = Math.round(valueOf(c) / sum * 100) + "%";
+      var track = el("div", "pt-track", li);
+      var fill = el("div", "pt-fill", track);
+      fill.style.width = (top ? valueOf(c) / top * 100 : 0) + "%";
+      fill.style.background = c.color;
+      el("div", "pt-row-sub", li).textContent =
+        (c.n + c.slash) + " prompts" +
+        (c.busy ? " · " + mmss(c.busy) + " busy" : "") +
+        // 上の行に出している指標は繰り返さない。
+        (c.cost && opts.metric !== "cost" ? " · " + METRICS.cost.fmt(c.cost) : "") +
+        (c.tokens && opts.metric !== "tokens" ? " · " + METRICS.tokens.fmt(c.tokens) + " tok" : "");
+      var flip = function () { toggle(c.key); };
+      li.addEventListener("click", flip);
+      li.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } });
+      c.legendNode = li;
     });
 
     function toggle(key) {
@@ -325,7 +359,7 @@
     var detailParts = null;   // 詳細パネルの中の差し替える要素をそのまま持っておく
 
     function buildDetail() {
-      var box = el("div", "pt-detail", host);
+      var box = el("div", "pt-detail", main);
       var head = el("div", "pt-detail-head", box);
       var chip = el("span", "pt-chip", head);
       var swatch = el("span", "pt-swatch", chip);
