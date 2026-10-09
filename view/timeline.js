@@ -321,6 +321,18 @@
     };
 
     var panel = el("div", "pt-panel", main);
+
+    // 記号の読み方。説明する記号そのものの形で書く。その日に無い記号は載せない。
+    var key = el("div", "pt-key", panel);
+    function keyItem(cls, text) {
+      var it = el("span", "pt-k", key);
+      el("i", cls, it);
+      it.appendChild(document.createTextNode(text));
+    }
+    keyItem("pt-k-dot", metric ? "one prompt — area is its " + metric.label : "one prompt");
+    if (rows.some(function (r) { return (r.spans || []).length; })) keyItem("pt-k-busy", "agent busy on it");
+    if (rows.some(function (r) { return r.kind === "slash"; })) keyItem("pt-k-slash", "slash command");
+    if (segs.some(function (sg) { return sg.fold; })) keyItem("pt-k-fold", "idle hours folded");
     var scroll = el("div", "pt-scroll", panel);
     var plot = el("div", "pt-plot", scroll);
     plot.style.width = width + "px";
