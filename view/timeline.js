@@ -34,6 +34,16 @@
     return (p[0] || 0) * 60 + (p[1] || 0) + (p[2] || 0) / 60;
   }
 
+  // 先頭の <tag>…</tag> の塊は、ダッシュボードやフックが差し込んだ文脈で、本人が書いた文ではない。
+  var LEADING_TAGS = /^(\s*<([A-Za-z][\w-]*)[^>]*>[\s\S]*?<\/\2>\s*)+/;
+  function ownText(r) {
+    if (!r.text) return null;
+    var body = r.text.replace(LEADING_TAGS, "").trim();
+    return body || r.text;
+  }
+  // 本人が書いた長さ。本文が無い（--no-text）ときは記録された文字数で代える。
+  function ownLength(r) { var t = ownText(r); return t == null ? (r.chars || 0) : t.length; }
+
   // 表示できる指標。cost は API 換算、tokens は transcript にある生の数。
   var METRICS = {
     cost:   { label: "cost",   of: function (r) { return r.cost || 0; },
@@ -104,8 +114,10 @@
     return { cols: cols, index: index };
   }
 
-  /* 色はセッションに付け、並び順には付けない。cost/tokens を切り替えて列が入れ替わっても
-     同じセッションは同じ色のまま。順番は「その日に初めて現れた順」で固定する。
+  /* 色はセッションに付け、表示の並び順には付けない。cost/tokens を切り替えて列が入れ替わっても
+     同じセッションは同じ色のまま。色を配る順は「その日どれだけ動いたか」（件数 → 稼働時間 →
+     初めて現れた時刻）で、size by とは無関係に 1 日の中で固定。8 色を超えたら、灰色になるのは
+     その日いちばん動かなかったセッションになる。
      設定ファイルが使っている色の枠は飛ばすので、2 つのセッションが同じ色になることはない。 */
   function assignColors(cols, firstSeen) {
     var taken = {};
@@ -113,7 +125,10 @@
     var free = [];
     SLOTS.forEach(function (hex, i) { if (!taken[hex]) free.push("var(--pt-s" + (i + 1) + ")"); });
     var order = cols.filter(function (c) { return !c.color; })
-      .sort(function (a, b) { return firstSeen[a.key].localeCompare(firstSeen[b.key]) || a.key.localeCompare(b.key); });
+      .sort(function (a, b) {
+        return (b.n + b.slash) - (a.n + a.slash) || (b.busy || 0) - (a.busy || 0) ||
+               firstSeen[a.key].localeCompare(firstSeen[b.key]) || a.key.localeCompare(b.key);
+      });
     order.forEach(function (c, i) {
       // 9 本目以降は色を作らない。灰色に落として、見出しの名前で区別させる。
       c.color = i < free.length ? free[i] : "var(--pt-other)";
@@ -203,7 +218,7 @@
         if (run.length < minLen) return;
         var dur = toMinutes(run[run.length - 1].time) - toMinutes(run[0].time);
         if (!best || run.length > best.rows.length || (run.length === best.rows.length && dur < best.minutes)) {
-          var chars = run.reduce(function (a, r) { return a + (r.chars || (r.text || "").length); }, 0);
+          var chars = run.reduce(function (a, r) { return a + ownLength(r); }, 0);
           best = { session: key, rows: run.slice(), minutes: dur, avgChars: Math.round(chars / run.length) };
         }
       }
@@ -459,7 +474,7 @@
       fill.style.width = (top ? valueOf(c) / top * 100 : 0) + "%";
       fill.style.background = c.color;
       el("div", "pt-row-sub", li).textContent =
-        (c.n + c.slash) + " prompts" +
+        (c.n + c.slash) + (c.n + c.slash === 1 ? " prompt" : " prompts") +
         (c.busy ? " · " + mmss(c.busy) + " busy" : "") +
         // 上の行に出している指標は繰り返さない。
         (c.cost && opts.metric !== "cost" ? " · " + METRICS.cost.fmt(c.cost) : "") +
@@ -540,29 +555,33 @@
       };
       var snip = function (r) {
         if (!r.text) return (r.chars || 0) + " characters (text not included)";
-        var t = r.text.replace(/\s+/g, " ").trim();
+        // 抜粋は本人が書いた部分から。全文のシートでは一切いじらない。
+        var t = ownText(r).replace(/\s+/g, " ").trim();
         return "“" + (t.length > 84 ? t.slice(0, 84) + "…" : t) + "”";
       };
       var cards = [];
+      // 同じプロンプトが複数の「瞬間」に当たったら、カードは 1 枚にまとめて肩書きを足す。
+      function put(card) {
+        var same = cards.filter(function (c) { return c.row === card.row && !c.group && !card.group; })[0];
+        if (!same) { cards.push(card); return; }
+        same.label += " — and the " + card.label.charAt(0).toLowerCase() + card.label.slice(1);
+        same.note = [same.note, card.value + (card.note ? " · " + card.note : "")].filter(Boolean).join(" · ");
+      }
       var longest = maxBy(function (r) { return r.busyMs || 0; });
-      if (longest) cards.push({ label: "Longest run", value: mmss(longest.busyMs), row: longest });
+      if (longest) put({ label: "Longest run", value: mmss(longest.busyMs), row: longest });
       var pricey = maxBy(function (r) { return r.cost || 0; });
-      // 一番長く走ったのと一番高いのが同じプロンプトなら、カードを 2 枚使わず 1 枚にまとめる。
-      if (pricey && longest === pricey) {
-        cards[cards.length - 1].label = "Longest run — and the priciest";
-        cards[cards.length - 1].note = METRICS.cost.fmt(pricey.cost) + " · " + METRICS.tokens.fmt(pricey.tokens || 0) + " tokens";
-      } else if (pricey) cards.push({ label: "Priciest prompt", value: METRICS.cost.fmt(pricey.cost), row: pricey,
-                               note: METRICS.tokens.fmt(pricey.tokens || 0) + " tokens" });
+      if (pricey) put({ label: "Priciest prompt", value: METRICS.cost.fmt(pricey.cost), row: pricey,
+                        note: METRICS.tokens.fmt(pricey.tokens || 0) + " tokens" });
       else {
         var heavy = maxBy(function (r) { return r.tokens || 0; });
-        if (heavy) cards.push({ label: "Most tokens", value: METRICS.tokens.fmt(heavy.tokens), row: heavy });
+        if (heavy) put({ label: "Most tokens", value: METRICS.tokens.fmt(heavy.tokens), row: heavy });
       }
       var loop = tightestLoop(human, 6, 3);
-      if (loop) cards.push({ label: "Tightest loop", value: loop.rows.length + " prompts in " + Math.max(1, Math.round(loop.minutes)) + "m",
+      if (loop) put({ label: "Tightest loop", value: loop.rows.length + " prompts in " + Math.max(1, Math.round(loop.minutes)) + "m",
                              row: loop.rows[0], group: loop.rows,
                              note: "avg " + loop.avgChars + " characters" + (loop.avgChars < 60 ? " — quick corrections?" : " — feeding in detail") });
-      var essay = maxBy(function (r) { return r.chars || 0; });
-      if (essay) cards.push({ label: "Longest prompt you wrote", value: (essay.chars || 0).toLocaleString() + " chars", row: essay });
+      var essay = maxBy(ownLength);
+      if (essay) put({ label: "Longest prompt you wrote", value: ownLength(essay).toLocaleString() + " chars", row: essay });
       if (!cards.length) return;
 
       var box = el("div", "pt-moments", side);
@@ -658,5 +677,5 @@
     // テスト用。描画には使わない。
     _internal: { buildColumns: buildColumns, assignColors: assignColors, METRICS: METRICS, SLOTS: SLOTS,
                  hourly: hourly, peakConcurrency: peakConcurrency, foldAxis: foldAxis,
-                 tightestLoop: tightestLoop } };
+                 tightestLoop: tightestLoop, ownLength: ownLength } };
 })(this);

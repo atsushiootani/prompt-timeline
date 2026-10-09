@@ -111,3 +111,30 @@ test("no loop is reported when nothing repeats quickly enough", () => {
   const rows = [{ session: "a", time: "10:00:00" }, { session: "a", time: "10:30:00" }, { session: "a", time: "11:00:00" }];
   assert.equal(tightestLoop(rows, 6, 3), null);
 });
+
+test("past eight, grey goes to the least active sessions, not the latest to appear", () => {
+  // Three one-prompt sessions show up first thing; two busy ones only arrive in the evening.
+  const rows = [
+    ...["a", "b", "c"].map((k, i) => ({ session: k, agent: k, workspace: "w", time: `06:0${i}:00` })),
+    ...["d", "e", "f", "g", "h"].flatMap((k, i) => [0, 1].map((j) => ({ session: k, agent: k, workspace: "w", time: `1${i}:0${j}:00` }))),
+    ...["late1", "late2"].flatMap((k, i) => [0, 1, 2, 3].map((j) => ({ session: k, agent: k, workspace: "w", time: `2${i}:0${j}:00` }))),
+  ];
+  const seen = {};
+  rows.forEach((r) => { if (!(r.session in seen)) seen[r.session] = r.time; });
+  const { cols } = buildColumns(rows, {}, null);
+  assignColors(cols, seen);
+  const grey = cols.filter((c) => c.color === "var(--pt-other)").map((c) => c.key).sort();
+  assert.equal(grey.length, 2);
+  assert.ok(grey.every((k) => ["a", "b", "c"].includes(k)), `greyed ${grey}`);
+});
+
+test("what you wrote is measured without the tags a dashboard prepends", () => {
+  const { ownLength } = sandbox.PromptTimeline._internal;
+  const typed = "Ship it.";
+  const injected = "<dashboard-state>\ntab: Ideas\n</dashboard-state>\n\n" + typed;
+  assert.equal(ownLength({ text: injected, chars: injected.length }), typed.length);
+  // Without text (--no-text) the recorded count is all there is.
+  assert.equal(ownLength({ chars: 42 }), 42);
+  // A prompt that is nothing but a tag is kept whole rather than measured as empty.
+  assert.equal(ownLength({ text: "<note>hi</note>" }), "<note>hi</note>".length);
+});
