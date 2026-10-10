@@ -29,16 +29,26 @@ For "this week" / "last N days", use `--last N` instead of a date.
 
 ## 2. Build
 
+**First check whether this is the first run** — the day links and day-over-day comparisons
+need other days in the folder:
+
+```bash
+ls "${CLAUDE_PLUGIN_DATA}/out" 2>/dev/null | grep -c '\.json$'
+```
+
+If that prints `0` (or nothing), **keep `--date` and add `--last 7`**. That builds the week
+ending on the requested day, so the day the user asked for is still built — plus the six before
+it. Do this even when the user asked for a single day; tell them you built the week so the
+comparisons work. Each day takes a few seconds.
+
+Then build:
+
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/bin/prompt-timeline.mjs" build \
   --out-dir "${CLAUDE_PLUGIN_DATA}/out" \
   --config "${CLAUDE_PLUGIN_DATA}/agents.json" \
   --date 2026-09-16
 ```
-
-**First time?** If `${CLAUDE_PLUGIN_DATA}/out` has no other days in it, build the past week
-instead (`--last 7` in place of `--date`) so the day links and comparisons have something to
-show from the start. Each day takes a few seconds.
 
 The last lines report what was found:
 
