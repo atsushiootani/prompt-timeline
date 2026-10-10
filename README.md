@@ -30,6 +30,26 @@ Colours are checked for colour-blind separation, and dark mode has its own:
 > All three screenshots are the real tool rendering [`sample/sample-day.json`](sample/sample-day.json),
 > which is fabricated data — nobody's actual prompts.
 
+## Install it in Claude Code
+
+Prompt Timeline is part of [**concier-chan's kit**](https://github.com/atsushiootani/concier-chan-kit),
+a plugin marketplace anyone with Claude Code can install from — no sign-up, nothing to approve.
+
+```bash
+claude plugin marketplace add atsushiootani/concier-chan-kit
+claude plugin install prompt-timeline@atsushiootani
+```
+
+or from inside a session (Claude Code 2.1.275 or later):
+
+```
+/plugin install prompt-timeline --marketplace atsushiootani/concier-chan-kit
+```
+
+Then ask *build my prompt timeline* or run `/prompt-timeline:build`. Updates arrive with
+`claude plugin update prompt-timeline@atsushiootani`, or turn on auto-update for the marketplace
+in `/plugin`. Prefer the command line? See [Quick start](#quick-start).
+
 ## What it reads
 
 Only `~/.claude/projects/<project>/<session>.jsonl` — the transcripts Claude Code already keeps
@@ -77,27 +97,13 @@ npm run demo && open out/demo.html
 
 ## Use it from Claude Code
 
-This repository is also a Claude Code plugin marketplace. Install once:
+Once [installed](#install-it-in-claude-code), just ask — *build my prompt timeline*, *how much did
+I spend yesterday*, *show me last week* — or run `/prompt-timeline:build`. It works out the date,
+builds the page, and tells you the counts and where the file is. Every day goes into the plugin's
+own data folder, so days link to each other and compare against the previous one; on the first
+run it builds the past week.
 
-```bash
-claude plugin marketplace add atsushiootani/prompt-timeline
-claude plugin install prompt-timeline@prompt-timeline
-```
-
-or, inside a session on Claude Code 2.1.275 or later:
-
-```
-/plugin install prompt-timeline --marketplace atsushiootani/prompt-timeline
-```
-
-Then just ask — *build my prompt timeline*, *how much did I spend yesterday*, *show me last
-week* — or run `/prompt-timeline:build`. It works out the date, builds the page, and tells you
-the counts and where the file is. Every day goes into the plugin's own data folder, so days link
-to each other and compare against the previous one; on the first run it builds the past week.
-
-Updates arrive with `claude plugin update prompt-timeline@prompt-timeline` (or turn on
-auto-update for the marketplace in `/plugin`). To try a checkout without installing:
-`claude --plugin-dir ./prompt-timeline`.
+To try a checkout without installing: `claude --plugin-dir ./prompt-timeline`.
 
 ## Commands
 
@@ -206,7 +212,7 @@ given, and the view follows `prefers-color-scheme` for dark mode.
 | `view/` | the timeline component (`timeline.js`, `timeline.css`, `template.html`) |
 | `sample/sample-day.json` | fabricated data for the demo and the screenshots |
 | `test/` | run with `npm test` |
-| `.claude-plugin/` | plugin manifest and its one-entry marketplace |
+| `.claude-plugin/plugin.json` | the plugin manifest (listed in [concier-chan's kit](https://github.com/atsushiootani/concier-chan-kit)) |
 | `skills/build/` | the Claude Code skill (`/prompt-timeline:build`) |
 
 ## Worth knowing

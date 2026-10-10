@@ -28,6 +28,26 @@ Claude Code が手元に残している transcript を読むだけで、上か�
 > どれも実際にこのツールが [`sample/sample-day.json`](sample/sample-day.json) を描いたもの。
 > 中身は作り物のサンプルで、誰かの実際のプロンプトではない。
 
+## Claude Code に入れる
+
+Prompt Timeline は [**concier-chan's kit**](https://github.com/atsushiootani/concier-chan-kit) の一員。
+Claude Code を使っていれば誰でもここから入れられるプラグインマーケットプレイスで、登録も申請も要らない。
+
+```bash
+claude plugin marketplace add atsushiootani/concier-chan-kit
+claude plugin install prompt-timeline@atsushiootani
+```
+
+Claude Code 2.1.275 以降なら、セッションの中から 1 行でもいい:
+
+```
+/plugin install prompt-timeline --marketplace atsushiootani/concier-chan-kit
+```
+
+あとは「プロンプトのタイムラインを作って」と頼むか、`/prompt-timeline:build` を打つ。
+更新は `claude plugin update prompt-timeline@atsushiootani`、または `/plugin` でマーケットプレイスの
+自動更新をオンにする。コマンドラインで使いたいなら[つかいかた](#つかいかた)へ。
+
 ## 何を読むのか
 
 `~/.claude/projects/<プロジェクト>/<セッション>.jsonl` — Claude Code が**自分のマシンに**
@@ -73,26 +93,12 @@ npm run demo && open out/demo.html
 
 ## Claude Code のスキルとして使う
 
-このリポジトリは Claude Code のプラグインマーケットプレイスでもある。一度だけ入れておく:
+[入れて](#claude-code-に入れる)おけば、あとは「今日のプロンプトのタイムラインを作って」「昨日いくら使った？」
+「先週を振り返りたい」と頼むか、`/prompt-timeline:build` を打つ。日付の解釈から生成まで通して、
+件数とファイルの場所を返す。日ごとのページはプラグイン専用のデータフォルダに溜まっていくので、
+日どうしがつながり、前の日との差が出る。初回は直近 1 週間をまとめて作る。
 
-```bash
-claude plugin marketplace add atsushiootani/prompt-timeline
-claude plugin install prompt-timeline@prompt-timeline
-```
-
-Claude Code 2.1.275 以降なら、セッションの中から 1 行でもいい:
-
-```
-/plugin install prompt-timeline --marketplace atsushiootani/prompt-timeline
-```
-
-あとは「今日のプロンプトのタイムラインを作って」「昨日いくら使った？」「先週を振り返りたい」と
-頼むか、`/prompt-timeline:build` を打つ。日付の解釈から生成まで通して、件数とファイルの場所を返す。
-日ごとのページはプラグイン専用のデータフォルダに溜まっていくので、日どうしがつながり、前の日との差が出る。
-初回は直近 1 週間をまとめて作る。
-
-更新は `claude plugin update prompt-timeline@prompt-timeline`（`/plugin` でマーケットプレイスの自動更新を
-オンにしてもいい）。インストールせずに clone を試すなら `claude --plugin-dir ./prompt-timeline`。
+インストールせずに clone を試すなら `claude --plugin-dir ./prompt-timeline`。
 
 ## コマンド
 
@@ -205,7 +211,7 @@ PromptTimeline.mount(document.getElementById("timeline"), data);
 | `view/` | タイムライン本体（`timeline.js` / `timeline.css` / `template.html`） |
 | `sample/sample-day.json` | デモとスクショ用の作り物データ |
 | `test/` | `npm test` で走る |
-| `.claude-plugin/` | プラグインの定義と、それ 1 本だけを載せたマーケットプレイス |
+| `.claude-plugin/plugin.json` | プラグインの定義（[concier-chan's kit](https://github.com/atsushiootani/concier-chan-kit) に掲載） |
 | `skills/build/` | Claude Code スキル（`/prompt-timeline:build`） |
 
 ## 気をつけること
