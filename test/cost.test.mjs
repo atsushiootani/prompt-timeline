@@ -87,3 +87,18 @@ test("unpriced models are surfaced rather than hidden", async () => {
   assert.deepEqual(doc.summary.unpriced_models, ["<synthetic>"]);
   assert.equal(doc.human_prompts[0].tokens, 1000, "tokens still counted");
 });
+
+test("cache reads on Fable 5.1 and Mythos 5.1 cost a quarter of the usual rate", () => {
+  // Published: 0.025x the input price on these two models, 0.1x on every other.
+  const read = { cache_read_input_tokens: 1e6 };
+  assert.equal(priceTurn("claude-fable-5-1", read).cost, 0.25);
+  assert.equal(priceTurn("claude-mythos-5-1", read).cost, 0.25);
+  assert.equal(priceTurn("claude-fable-5", read).cost, 1, "Fable 5 keeps the standard 0.1x");
+  assert.equal(priceTurn("claude-opus-5", read).cost, 0.5);
+});
+
+test("the 1-hour cache write is twice the input rate, the 5-minute one 1.25x", () => {
+  const write = (kind) => ({ cache_creation: { [kind]: 1e6 } });
+  assert.equal(priceTurn("claude-opus-5", write("ephemeral_1h_input_tokens")).cost, 10);
+  assert.equal(priceTurn("claude-opus-5", write("ephemeral_5m_input_tokens")).cost, 6.25);
+});

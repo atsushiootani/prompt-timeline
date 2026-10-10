@@ -12,6 +12,7 @@
 /** Anthropic list prices, $ per million tokens, as [input, output]. */
 export const PRICES = {
   "claude-fable-5-1": [10, 50],
+  "claude-mythos-5-1": [10, 50],
   "claude-fable-5": [10, 50],
   "claude-opus-5": [5, 25],
   "claude-opus-4-8": [5, 25],
@@ -23,12 +24,15 @@ export const PRICES = {
 };
 
 // Cache is charged against the input rate: reads are cheap, writes carry a premium.
+// Source: https://platform.claude.com/docs/en/about-claude/pricing (Prompt caching).
 const CACHE_READ = 0.1;
 const CACHE_WRITE_5M = 1.25;
-// UNVERIFIED: the 1h write multiplier has not been confirmed against Anthropic's
-// published pricing. It moves the day total by a few percent but not the ranking of
-// sessions, which is what the timeline is read for. Confirm before quoting absolutes.
 const CACHE_WRITE_1H = 2.0;
+// The two models whose cache hits are priced below the standard 0.1x.
+const CACHE_READ_BY_MODEL = {
+  "claude-fable-5-1": 0.025,
+  "claude-mythos-5-1": 0.025,
+};
 
 /**
  * Cost in USD and the raw token count for one assistant turn.
@@ -54,7 +58,7 @@ export function priceTurn(model, usage) {
   const cost =
     (input * inRate +
       output * outRate +
-      cacheRead * inRate * CACHE_READ +
+      cacheRead * inRate * (CACHE_READ_BY_MODEL[model] ?? CACHE_READ) +
       write5mFinal * inRate * CACHE_WRITE_5M +
       write1h * inRate * CACHE_WRITE_1H) /
     1e6;

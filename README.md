@@ -139,8 +139,8 @@ drift and new models appear, but the counts in the transcript stay true, so a st
 table can be caught. A model with no price is counted in tokens and listed under
 `unpriced_models` rather than quietly valued at zero.
 
-> The 1-hour cache-write multiplier in `src/pricing.mjs` is **not yet verified** against
-> published pricing. It moves a day's total by a few percent and does not reorder sessions.
+> Rates follow Anthropic's published pricing: cache writes at 1.25× (5-minute) and 2× (1-hour) the
+> input price, cache reads at 0.1× — except Claude Fable 5.1 and Mythos 5.1, where reads are 0.025×.
 
 ## What counts as "a prompt you typed"
 
