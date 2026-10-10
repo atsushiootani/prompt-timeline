@@ -73,14 +73,26 @@ npm run demo && open out/demo.html
 
 ## Claude Code のスキルとして使う
 
-[`.claude/skills/prompt-timeline.build/`](.claude/skills/prompt-timeline.build/SKILL.md) を同梱してある。
-このリポジトリを開いた Claude Code にこう頼めばいい:
+このリポジトリは Claude Code のプラグインマーケットプレイスでもある。一度だけ入れておく:
 
-> 今日のプロンプトのタイムラインを作って
+```bash
+claude plugin marketplace add atsushiootani/prompt-timeline
+claude plugin install prompt-timeline@prompt-timeline
+```
 
-日付の解釈から生成まで通してやって、件数とパスを返す。
-ほかのリポジトリからも呼びたいなら、スキルのディレクトリを `~/.claude/skills/` に置いて、
-中のコマンドを clone 先の絶対パスに直す。
+Claude Code 2.1.275 以降なら、セッションの中から 1 行でもいい:
+
+```
+/plugin install prompt-timeline --marketplace atsushiootani/prompt-timeline
+```
+
+あとは「今日のプロンプトのタイムラインを作って」「昨日いくら使った？」「先週を振り返りたい」と
+頼むか、`/prompt-timeline:build` を打つ。日付の解釈から生成まで通して、件数とファイルの場所を返す。
+日ごとのページはプラグイン専用のデータフォルダに溜まっていくので、日どうしがつながり、前の日との差が出る。
+初回は直近 1 週間をまとめて作る。
+
+更新は `claude plugin update prompt-timeline@prompt-timeline`（`/plugin` でマーケットプレイスの自動更新を
+オンにしてもいい）。インストールせずに clone を試すなら `claude --plugin-dir ./prompt-timeline`。
 
 ## コマンド
 
@@ -193,7 +205,8 @@ PromptTimeline.mount(document.getElementById("timeline"), data);
 | `view/` | タイムライン本体（`timeline.js` / `timeline.css` / `template.html`） |
 | `sample/sample-day.json` | デモとスクショ用の作り物データ |
 | `test/` | `npm test` で走る |
-| `.claude/skills/prompt-timeline.build/` | Claude Code スキル |
+| `.claude-plugin/` | プラグインの定義と、それ 1 本だけを載せたマーケットプレイス |
+| `skills/build/` | Claude Code スキル（`/prompt-timeline:build`） |
 
 ## 気をつけること
 

@@ -1,0 +1,13 @@
+{
+  "name": "prompt-timeline",
+  "displayName": "Prompt Timeline",
+  "description": "See a day of your own Claude Code work on one page: what it cost, how long the agents ran, when, which session, and the moments worth looking back at. Reads only the transcripts already on your machine.",
+  "author": {
+    "name": "Atsushi Otani",
+    "url": "https://github.com/atsushiootani"
+  },
+  "homepage": "https://github.com/atsushiootani/prompt-timeline",
+  "repository": "https://github.com/atsushiootani/prompt-timeline",
+  "license": "MIT",
+  "keywords": ["timeline", "transcripts", "cost", "tokens", "productivity", "visualization"]
+}

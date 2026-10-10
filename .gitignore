@@ -1,6 +1,9 @@
 # Some global gitignore files exclude bin/ - here bin/ is the tool itself.
 !bin/
 !bin/*.mjs
+# ...and build/ - here skills/build/ is the plugin's skill.
+!skills/build/
+!skills/build/SKILL.md
 
 # Generated output: contains your prompts verbatim, so never publish it.
 out/
