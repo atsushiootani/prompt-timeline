@@ -77,14 +77,27 @@ npm run demo && open out/demo.html
 
 ## Use it from Claude Code
 
-A skill ships in [`.claude/skills/prompt-timeline.build/`](.claude/skills/prompt-timeline.build/SKILL.md).
-With this repository open, just ask:
+This repository is also a Claude Code plugin marketplace. Install once:
 
-> build a timeline of the prompts I typed today
+```bash
+claude plugin marketplace add atsushiootani/prompt-timeline
+claude plugin install prompt-timeline@prompt-timeline
+```
 
-It works out the date, runs the build, and tells you the counts and the path.
-To use it from any repository, copy that skill directory into `~/.claude/skills/`
-and point the commands inside it at wherever you cloned this.
+or, inside a session on Claude Code 2.1.275 or later:
+
+```
+/plugin install prompt-timeline --marketplace atsushiootani/prompt-timeline
+```
+
+Then just ask — *build my prompt timeline*, *how much did I spend yesterday*, *show me last
+week* — or run `/prompt-timeline:build`. It works out the date, builds the page, and tells you
+the counts and where the file is. Every day goes into the plugin's own data folder, so days link
+to each other and compare against the previous one; on the first run it builds the past week.
+
+Updates arrive with `claude plugin update prompt-timeline@prompt-timeline` (or turn on
+auto-update for the marketplace in `/plugin`). To try a checkout without installing:
+`claude --plugin-dir ./prompt-timeline`.
 
 ## Commands
 
@@ -193,7 +206,8 @@ given, and the view follows `prefers-color-scheme` for dark mode.
 | `view/` | the timeline component (`timeline.js`, `timeline.css`, `template.html`) |
 | `sample/sample-day.json` | fabricated data for the demo and the screenshots |
 | `test/` | run with `npm test` |
-| `.claude/skills/prompt-timeline.build/` | the Claude Code skill |
+| `.claude-plugin/` | plugin manifest and its one-entry marketplace |
+| `skills/build/` | the Claude Code skill (`/prompt-timeline:build`) |
 
 ## Worth knowing
 
